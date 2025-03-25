@@ -11,7 +11,7 @@ class ShoppingTrip(Base):
     purchase_date = Column(Date, nullable=False)
     total_amount = Column(Float(precision=2))
     payment_method = Column(String(50))
-    notes = Column(String)  # Changed from TEXT to String for compatibility
+    notes = Column(String(150))
 
     # Relationship to purchased items
     items = relationship("PurchasedItem", back_populates="trip")
