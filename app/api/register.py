@@ -1,12 +1,13 @@
-from http import HTTPStatus
-from flask import request, jsonify
-from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime
-from app.utils.models import ShoppingTrip, PurchasedItem
-from app.utils.models.product import Product
 from . import expenses_bp
 from app.services.database import Session, db
+from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
+from app.utils.models import ShoppingTrip, PurchasedItem
+from app.utils.models.product import Product
+from datetime import datetime
+from flask import request, jsonify
+from http import HTTPStatus
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 import logging
 logger = logging.getLogger('views')
@@ -28,7 +29,7 @@ def save_purchase():
         if not all(field in data for field in required_fields):
             logger.error({'error': 'Missing required fields'})
             logger.debug(data)
-            return jsonify({'error': 'Missing required fields'}), HTTPStatus.BAD_REQUEST
+            raise RequestPayloadError('Missing required fields')
 
         trip = ShoppingTrip(
             store_name=data['store_name'],
@@ -36,32 +37,36 @@ def save_purchase():
             payment_method=data.get('payment_method'),
             notes=data.get('notes')
         )
-        s.add(trip)
+        total = 0
 
         for item_data in data['items']:
             if not all(k in item_data for k in ['product_name', 'quantity', 'unit_price']):
                 logger.error({'error': 'Missing required fields'})
                 logger.debug(data)
-                return jsonify({'error': 'Missing item fields'}), HTTPStatus.BAD_REQUEST
+                raise RequestPayloadError('Missing item fields')
 
             with db.get_db_engine().connect() as conn:
                 stmt = (
-                    select(Product).where(Product.product_name == item_data['product_name'])
+                    select(Product.product_id).where(Product.product_name == item_data['product_name'])
                 )
-                product_obj = conn.scalars(stmt).first()
+                product_id = conn.scalars(stmt).first()
 
-            if product_obj is None:
-                raise Exception('product not registered')
+            if product_id is None:
+                raise ProductError('product not registered')
 
             purchased_item = PurchasedItem(
                 trip=trip,
-                product_id=product_obj.product_id,
+                product_id=product_id,
                 quantity=item_data['quantity'],
                 unit_price=item_data['unit_price'],
                 brand=item_data.get('brand')
             )
             s.add(purchased_item)
 
+            total += purchased_item.quantity * purchased_item.unit_price
+
+        trip.total_amount = total
+        s.add(trip)
         s.commit()
 
         return jsonify({
@@ -69,9 +74,9 @@ def save_purchase():
             'trip_id': trip.trip_id
         }), HTTPStatus.CREATED
 
-    except ValueError as e:
+    except (ProductError, RequestPayloadError, TypeError, ValueError) as e:
         s.rollback()
-        return jsonify({'error': f'Invalid date format: {str(e)}'}), HTTPStatus.BAD_REQUEST
+        return jsonify({'error': str(e)}), HTTPStatus.BAD_REQUEST
     except SQLAlchemyError as e:
         s.rollback()
         return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
