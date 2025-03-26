@@ -10,8 +10,9 @@ def create_app():
 
     from app.cli import database
     app.cli.add_command(database.create_tables)
-    app.cli.add_command(database.register_product)
+    app.cli.add_command(database.register_category)
     app.cli.add_command(database.list_categories)
+    app.cli.add_command(database.register_product)
 
     logging.info('application started')
 
