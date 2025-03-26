@@ -1,15 +1,24 @@
 from http import HTTPStatus
 from flask import request, jsonify
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from app.utils.models import ShoppingTrip, PurchasedItem
-from . import expenses
-from app.services.database import Session
+from app.utils.models.product import Product
+from . import expenses_bp
+from app.services.database import Session, db
 
 import logging
 logger = logging.getLogger('views')
 
-@expenses.route('/register', methods=['POST'])
+
+@expenses_bp.route('/', methods=['GET'])
+def root():
+    logger.info('home page accessed')
+    return '<p>Control Expenses initial page!</p>'
+
+
+@expenses_bp.route('/register', methods=['POST'])
 def save_purchase():
     s = Session()
     try:
@@ -30,14 +39,23 @@ def save_purchase():
         s.add(trip)
 
         for item_data in data['items']:
-            if not all(k in item_data for k in ['product_id', 'quantity', 'unit_price']):
+            if not all(k in item_data for k in ['product_name', 'quantity', 'unit_price']):
                 logger.error({'error': 'Missing required fields'})
                 logger.debug(data)
                 return jsonify({'error': 'Missing item fields'}), HTTPStatus.BAD_REQUEST
 
+            with db.get_db_engine().connect() as conn:
+                stmt = (
+                    select(Product).where(Product.product_name == item_data['product_name'])
+                )
+                product_obj = conn.scalars(stmt).first()
+
+            if product_obj is None:
+                raise Exception('product not registered')
+
             purchased_item = PurchasedItem(
                 trip=trip,
-                product_id=item_data['product_id'],
+                product_id=product_obj.product_id,
                 quantity=item_data['quantity'],
                 unit_price=item_data['unit_price'],
                 brand=item_data.get('brand')
