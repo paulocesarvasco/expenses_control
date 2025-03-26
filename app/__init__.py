@@ -8,8 +8,8 @@ def create_app():
 
     app = Flask(__name__)
 
-    from app.services.database import commands as db_commands
-    app.cli.add_command(db_commands.create_tables)
+    from app.cli import database
+    app.cli.add_command(database.create_tables)
 
     logging.info('application started')
 
