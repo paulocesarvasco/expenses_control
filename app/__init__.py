@@ -8,6 +8,9 @@ def create_app():
 
     app = Flask(__name__)
 
+    from app.api.register import expenses_bp
+    app.register_blueprint(expenses_bp)
+
     from app.cli import database
     app.cli.add_command(database.create_tables)
     app.cli.add_command(database.register_category)
