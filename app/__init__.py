@@ -13,6 +13,7 @@ def create_app():
     app.cli.add_command(database.register_category)
     app.cli.add_command(database.list_categories)
     app.cli.add_command(database.register_product)
+    app.cli.add_command(database.list_products)
 
     logging.info('application started')
 

@@ -105,3 +105,17 @@ def register_product():
         except Exception as e:
             logging.error(e)
     s.close()
+
+
+@click.command('list-products')
+def list_products():
+    with db.get_db_engine().connect() as conn:
+        stmt = select(
+            Product.product_name,
+            ProductCategory.category_name
+        ).join(
+            ProductCategory,
+            Product.category_id == ProductCategory.category_id
+        )
+        res = conn.execute(stmt).all()
+        print([r._mapping for r in res])
