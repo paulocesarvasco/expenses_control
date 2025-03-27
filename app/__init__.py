@@ -8,7 +8,7 @@ def create_app():
 
     app = Flask(__name__)
 
-    from app.api.register import expenses_bp
+    from app.api import expenses_bp
     app.register_blueprint(expenses_bp)
 
     from app.cli import database
@@ -17,6 +17,8 @@ def create_app():
     app.cli.add_command(database.list_categories)
     app.cli.add_command(database.register_product)
     app.cli.add_command(database.list_products)
+
+    print(app.url_map)
 
     logging.info('application started')
 

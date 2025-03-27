@@ -82,12 +82,12 @@ def register_product():
                         for idx in range(len(res)):
                             print('{}. {}'.format(idx, res[idx][1]))
 
-
                         category = int(input('Choose product category: '))
                         if category >= len(res) or category < -1:
                             logging.error('invalid option')
                         else:
                             break
+
                 except Exception as e:
                     logging.error(e)
 

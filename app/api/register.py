@@ -1,10 +1,9 @@
-from . import expenses_bp
 from app.services.database import Session, db
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
 from app.utils.models import ShoppingTrip, PurchasedItem
 from app.utils.models.product import Product
 from datetime import datetime
-from flask import request, jsonify
+from flask import Blueprint, request, jsonify
 from http import HTTPStatus
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,14 +11,10 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 logger = logging.getLogger('views')
 
-
-@expenses_bp.route('/', methods=['GET'])
-def root():
-    logger.info('home page accessed')
-    return '<p>Control Expenses initial page!</p>'
+registers_bp = Blueprint('registers', __name__, url_prefix='/register')
 
 
-@expenses_bp.route('/register', methods=['POST'])
+@registers_bp.route('/', methods=['POST'])
 def save_purchase():
     s = Session()
     try:
