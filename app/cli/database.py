@@ -84,7 +84,7 @@ def register_product():
 
 
                         category = int(input('Choose product category: '))
-                        if category >= len(res) - 1 or category < -1:
+                        if category >= len(res) or category < -1:
                             logging.error('invalid option')
                         else:
                             break
