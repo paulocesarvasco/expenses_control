@@ -124,4 +124,11 @@ def list_products():
             Product.category_id == ProductCategory.category_id
         )
         res = conn.execute(stmt).all()
-        print([r._mapping for r in res])
+        res = [r._mapping for r in res]
+        prod_list = [prod.get('product_name') for prod in res]
+        cat_list = [prod.get('category_name') for prod in res]
+
+        table = PrettyTable()
+        table.add_column('Produtos', column=prod_list)
+        table.add_column('Categorias', column=cat_list)
+        print(table)
