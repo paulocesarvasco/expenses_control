@@ -1,3 +1,4 @@
+from pprint import PrettyPrinter
 import click
 import logging
 import os
@@ -6,6 +7,7 @@ from app.services.database import db
 from app.utils.models import Base
 from sqlalchemy import create_engine, select
 from app.utils.models import Product, ProductCategory
+from prettytable import PrettyTable
 
 
 @click.command('init-db')
@@ -50,7 +52,10 @@ def list_categories():
         stmt = (select(ProductCategory.category_name.label('categoria')))
         res = conn.execute(stmt).all()
         cats = [cat for r in res for cat in r]
-        print(cats)
+
+        table = PrettyTable()
+        table.add_column('Categorias', column=cats)
+        print(table)
 
 
 @click.command('register-product')
