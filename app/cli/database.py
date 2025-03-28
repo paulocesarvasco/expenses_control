@@ -49,7 +49,8 @@ def list_categories():
     with db.get_db_engine().connect() as conn:
         stmt = (select(ProductCategory.category_name.label('categoria')))
         res = conn.execute(stmt).all()
-        print([r._mapping for r in res])
+        cats = [cat for r in res for cat in r]
+        print(cats)
 
 
 @click.command('register-product')
