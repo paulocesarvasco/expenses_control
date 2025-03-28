@@ -8,7 +8,7 @@ class ShoppingTrip(Base):
 
     trip_id = Column(Integer, primary_key=True, autoincrement=True)
     store_name = Column(String(100), nullable=False)
-    purchase_date = Column(Date, nullable=False)
+    purchase_date = Column(String(50), nullable=False)
     total_amount = Column(Float(precision=2))
     payment_method = Column(String(50))
     notes = Column(String(150))
