@@ -22,6 +22,7 @@ def select_shopping_trips(start_date, end_date):
     with get_db_engine().connect() as conn:
         stmt = (
             select(
+                ShoppingTrip.trip_id,
                 ShoppingTrip.store_name,
                 ShoppingTrip.purchase_date,
                 ShoppingTrip.total_amount,

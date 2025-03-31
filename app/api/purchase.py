@@ -39,7 +39,7 @@ def save_purchase():
         total = 0
 
         for item_data in data['items']:
-            if not all(k in item_data for k in ['product_name', 'quantity', 'unit_price']):
+            if not all(k in item_data for k in ['product_name', 'quantity', 'price']):
                 logger.error({'error': 'Missing required fields'})
                 logger.debug(data)
                 raise RequestPayloadError('Missing item fields')
@@ -53,12 +53,12 @@ def save_purchase():
                 trip=trip,
                 product_id=product_id,
                 quantity=item_data['quantity'],
-                unit_price=item_data['unit_price'],
+                unit_price=(item_data['price']/item_data['quantity']),
                 brand=item_data.get('brand')
             )
             s.add(purchased_item)
 
-            total += purchased_item.quantity * purchased_item.unit_price
+            total += item_data['price']
 
         trip.total_amount = total
         s.add(trip)
@@ -90,19 +90,18 @@ def search_purchases():
             end_date = (datetime.now()).strftime('%Y-%m-%d')
 
         trips = db.select_shopping_trips(start_date, end_date)
-        committed_stores = dict()
+        committed_trips = dict()
         for trip in trips:
             try:
-                store_name, date, total, item, brand, price, quantity = trip
+                trip_id, store_name, date, total, item, brand, price, quantity = trip
                 res = SearchResponsePayload()
-                key_store = '{}+{}'.format(store_name, date)
-                if key_store not in committed_stores.keys():
+                if trip_id not in committed_trips.keys():
                     res.store_name = store_name
                     res.purchase_date = date
                     res.total = total
-                    committed_stores['{}+{}'.format(store_name, date)] = res
+                    committed_trips[trip_id] = res
                 else:
-                    res = committed_stores['{}+{}'.format(store_name, date)]
+                    res = committed_trips[trip_id]
 
                 purchase = dict()
                 purchase['brand'] = brand
@@ -117,7 +116,7 @@ def search_purchases():
 
 
         list_results = []
-        for _, data in committed_stores.items():
+        for _, data in committed_trips.items():
             list_results.append(data.to_dict())
 
 
