@@ -1,4 +1,11 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block title %}Registro{% endblock %}
+
+{% block content_title %}Registrar nova compra{% endblock %}
+
+{% block content %}
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -36,27 +43,26 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Add New Purchase</h1>
 
-        <form id="purchaseForm">
+      <form id="purchaseForm">
             <div class="form-section">
-                <h3>Store Information</h3>
+                <h3>Informações da Loja</h3>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label for="storeName" class="form-label">Store Name</label>
+                        <label for="storeName" class="form-label">Loja</label>
                         <input type="text" class="form-control" id="storeName" required>
                     </div>
                     <div class="col-md-3">
-                        <label for="purchaseDate" class="form-label">Purchase Date</label>
+                        <label for="purchaseDate" class="form-label">Dia da Compra</label>
                         <input type="date" class="form-control" id="purchaseDate" required>
                     </div>
                     <div class="col-md-3">
-                        <label for="paymentMethod" class="form-label">Payment Method</label>
+                        <label for="paymentMethod" class="form-label">Método de Pagamento</label>
                         <select class="form-select" id="paymentMethod" required>
                             <option value="">Select...</option>
-                            <option value="Dinheiro">Cash</option>
-                            <option value="Cartão de Crédito">Credit Card</option>
-                            <option value="Cartão de Débito">Debit Card</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Cartão de Débito">Cartão de Débito</option>
+                            <option value="Dinheiro">Dinheiro</option>
                             <option value="PIX">PIX</option>
                         </select>
                     </div>
@@ -65,27 +71,27 @@
 
             <div class="form-section">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3>Purchased Items</h3>
-                    <button type="button" class="btn btn-primary" id="addItemBtn">+ Add Item</button>
+                    <h3>Itens Comprados</h3>
+                    <button type="button" class="btn btn-primary" id="addItemBtn">+ Adicionar Item</button>
                 </div>
 
                 <div id="items-container">
                     <div class="item-row" data-item-index="0">
                         <div class="row">
                             <div class="col-md-5">
-                                <label class="form-label">Product Name</label>
+                                <label class="form-label">Nome do Produto</label>
                                 <input type="text" class="form-control item-product" required>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Quantity</label>
+                                <label class="form-label">Quantidade</label>
                                 <input type="number" class="form-control item-quantity" min="0.001" step="0.001" required>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Unit Price (R$)</label>
+                                <label class="form-label">Preço Unitário (R$)</label>
                                 <input type="number" class="form-control item-price" min="0.01" step="0.01" required>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Brand</label>
+                                <label class="form-label">Marca</label>
                                 <input type="text" class="form-control item-brand">
                             </div>
                             <div class="col-md-1 d-flex align-items-end">
@@ -98,7 +104,7 @@
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <button type="submit" class="btn btn-success">
-                    <span id="submitText">Submit Purchase</span>
+                    <span id="submitText">Registrar Compra</span>
                     <div id="loadingSpinner" class="spinner-border spinner-border-sm ms-2" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
@@ -266,3 +272,5 @@
     </script>
 </body>
 </html>
+
+{% endblock %}
