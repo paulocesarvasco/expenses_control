@@ -1,11 +1,9 @@
 from app.services.database import Session, db
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
 from app.utils.models import ShoppingTrip, PurchasedItem
-from app.utils.models.product import Product
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, render_template, request, jsonify
 from http import HTTPStatus
-from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 import logging
@@ -40,12 +38,8 @@ def save_purchase():
                 logger.debug(data)
                 raise RequestPayloadError('Missing item fields')
 
-            with db.get_db_engine().connect() as conn:
-                stmt = (
-                    select(Product.product_id).where(Product.product_name == item_data['product_name'])
-                )
-                product_id = conn.scalars(stmt).first()
 
+            product_id = db.select_product_id(product=item_data['product_name'])
             if product_id is None:
                 raise ProductError('product not registered')
 
