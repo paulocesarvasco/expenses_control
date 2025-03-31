@@ -9,4 +9,4 @@ expenses_bp.register_blueprint(searches_bp)
 
 @expenses_bp.route('/')
 def root():
-    return render_template('register.html')
+    return render_template('base.html')
