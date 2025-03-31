@@ -11,6 +11,10 @@ logger = logging.getLogger('views')
 
 registers_bp = Blueprint('registers', __name__, url_prefix='/register')
 
+@registers_bp.route('/forms')
+def get_registry_form():
+    return render_template('register.html')
+
 
 @registers_bp.route('/', methods=['POST'])
 def save_purchase():
