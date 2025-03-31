@@ -87,7 +87,7 @@
                                 <input type="number" class="form-control item-quantity" min="0.001" step="0.001" required>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Preço Unitário (R$)</label>
+                                <label class="form-label">Valor Pago (R$)</label>
                                 <input type="number" class="form-control item-price" min="0.01" step="0.01" required>
                             </div>
                             <div class="col-md-2">
@@ -236,7 +236,7 @@
                     items.push({
                         product_name: row.querySelector('.item-product').value,
                         quantity: parseFloat(row.querySelector('.item-quantity').value),
-                        unit_price: parseFloat(row.querySelector('.item-price').value),
+                        price: parseFloat(row.querySelector('.item-price').value),
                         brand: row.querySelector('.item-brand').value || null
                     });
                 });
@@ -250,7 +250,7 @@
             }
 
             async function sendPurchaseData(data) {
-                return await fetch('http://127.0.0.1:5000/v1/register/save/', {
+                return await fetch('http://127.0.0.1:5000/v1/purchase/save', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

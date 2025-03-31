@@ -28,7 +28,7 @@ def select_shopping_trips(start_date, end_date):
                 ShoppingTrip.total_amount,
                 Product.product_name,
                 PurchasedItem.brand,
-                PurchasedItem.total_price,
+                PurchasedItem.unit_price,
                 PurchasedItem.quantity
             )
             .select_from(

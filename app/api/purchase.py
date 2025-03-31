@@ -93,20 +93,20 @@ def search_purchases():
         committed_trips = dict()
         for trip in trips:
             try:
-                trip_id, store_name, date, total, item, brand, price, quantity = trip
+                trip_id, store_name, purchase_date, total_amount, product_name, brand, unit_price, quantity = trip
                 res = SearchResponsePayload()
                 if trip_id not in committed_trips.keys():
                     res.store_name = store_name
-                    res.purchase_date = date
-                    res.total = total
+                    res.purchase_date = purchase_date
+                    res.total = total_amount
                     committed_trips[trip_id] = res
                 else:
                     res = committed_trips[trip_id]
 
                 purchase = dict()
                 purchase['brand'] = brand
-                purchase['item'] = item
-                purchase['price'] = price
+                purchase['item'] = product_name
+                purchase['price'] = unit_price
                 purchase['quantity'] = quantity
                 res.purchases.append(purchase)
 
