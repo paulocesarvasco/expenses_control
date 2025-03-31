@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Purchase Record</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .item-row {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .remove-item {
+            color: #dc3545;
+            cursor: pointer;
+        }
+        #items-container {
+            margin-top: 20px;
+        }
+        .form-section {
+            margin-bottom: 30px;
+        }
+        #loadingSpinner {
+            display: none;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Add New Purchase</h1>
+
+        <form id="purchaseForm">
+            <div class="form-section">
+                <h3>Store Information</h3>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="storeName" class="form-label">Store Name</label>
+                        <input type="text" class="form-control" id="storeName" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="purchaseDate" class="form-label">Purchase Date</label>
+                        <input type="date" class="form-control" id="purchaseDate" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="paymentMethod" class="form-label">Payment Method</label>
+                        <select class="form-select" id="paymentMethod" required>
+                            <option value="">Select...</option>
+                            <option value="Dinheiro">Cash</option>
+                            <option value="Cartão de Crédito">Credit Card</option>
+                            <option value="Cartão de Débito">Debit Card</option>
+                            <option value="PIX">PIX</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Purchased Items</h3>
+                    <button type="button" class="btn btn-primary" id="addItemBtn">+ Add Item</button>
+                </div>
+
+                <div id="items-container">
+                    <div class="item-row" data-item-index="0">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <label class="form-label">Product Name</label>
+                                <input type="text" class="form-control item-product" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control item-quantity" min="0.001" step="0.001" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Unit Price (R$)</label>
+                                <input type="number" class="form-control item-price" min="0.01" step="0.01" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Brand</label>
+                                <input type="text" class="form-control item-brand">
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <span class="remove-item">✕</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" class="btn btn-success">
+                    <span id="submitText">Submit Purchase</span>
+                    <div id="loadingSpinner" class="spinner-border spinner-border-sm ms-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true" id="successToast">
+        <div class="d-flex">
+            <div class="toast-body">
+                Purchase registered successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div class="toast align-items-center text-white bg-danger" role="alert" aria-live="assertive" aria-atomic="true" id="errorToast">
+        <div class="d-flex">
+            <div class="toast-body" id="errorMessage">
+                Error submitting purchase
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap toasts
+            const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+            const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+
+            // Set today's date as default
+            document.getElementById('purchaseDate').valueAsDate = new Date();
+
+            // Add item button functionality
+            document.getElementById('addItemBtn').addEventListener('click', addNewItem);
+
+            // Remove item functionality
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-item')) {
+                    if (document.querySelectorAll('.item-row').length > 1) {
+                        e.target.closest('.item-row').remove();
+                        reindexItems();
+                    } else {
+                        showError('You need at least one item in the purchase.');
+                    }
+                }
+            });
+
+            // Form submission
+            document.getElementById('purchaseForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                const submitText = document.getElementById('submitText');
+                const spinner = document.getElementById('loadingSpinner');
+
+                // Show loading state
+                submitText.textContent = 'Processing...';
+                spinner.style.display = 'inline-block';
+                submitButton.disabled = true;
+
+                try {
+                    const formData = collectFormData();
+                    const response = await sendPurchaseData(formData);
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        showSuccess('Purchase registered successfully!');
+                        this.reset();
+                        addNewItem(); // Reset to one empty item
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Failed to register purchase');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showError(error.message);
+                } finally {
+                    // Reset button state
+                    submitText.textContent = 'Submit Purchase';
+                    spinner.style.display = 'none';
+                    submitButton.disabled = false;
+                }
+            });
+
+            function addNewItem() {
+                const itemsContainer = document.getElementById('items-container');
+                const itemCount = document.querySelectorAll('.item-row').length;
+                const newItem = document.createElement('div');
+                newItem.className = 'item-row';
+                newItem.dataset.itemIndex = itemCount;
+                newItem.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control item-product" required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control item-quantity" min="0.001" step="0.001" required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" class="form-control item-price" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="text" class="form-control item-brand">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <span class="remove-item">✕</span>
+                        </div>
+                    </div>
+                `;
+                itemsContainer.appendChild(newItem);
+            }
+
+            function reindexItems() {
+                document.querySelectorAll('.item-row').forEach((row, index) => {
+                    row.dataset.itemIndex = index;
+                });
+            }
+
+            function collectFormData() {
+                const storeName = document.getElementById('storeName').value;
+                const purchaseDate = document.getElementById('purchaseDate').value;
+                const paymentMethod = document.getElementById('paymentMethod').value;
+
+                const items = [];
+                document.querySelectorAll('.item-row').forEach(row => {
+                    items.push({
+                        product_name: row.querySelector('.item-product').value,
+                        quantity: parseFloat(row.querySelector('.item-quantity').value),
+                        unit_price: parseFloat(row.querySelector('.item-price').value),
+                        brand: row.querySelector('.item-brand').value || null
+                    });
+                });
+
+                return {
+                    store_name: storeName,
+                    purchase_date: purchaseDate,
+                    payment_method: paymentMethod,
+                    items: items
+                };
+            }
+
+            async function sendPurchaseData(data) {
+                return await fetch('http://127.0.0.1:5000/v1/register/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+            }
+
+            function showSuccess(message) {
+                document.querySelector('#successToast .toast-body').textContent = message;
+                successToast.show();
+            }
+
+            function showError(message) {
+                document.getElementById('errorMessage').textContent = message;
+                errorToast.show();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, render_template
 from .search import searches_bp
 from .register import registers_bp
 
@@ -9,4 +9,4 @@ expenses_bp.register_blueprint(searches_bp)
 
 @expenses_bp.route('/')
 def root():
-    return '<p>Control Expenses initial page!</p>'
+    return render_template('register.html')
