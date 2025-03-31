@@ -18,6 +18,20 @@ def get_db_session():
     Session = sessionmaker(bind=engine)
     return Session()
 
+
+def select_all_products():
+    with get_db_engine().connect() as conn:
+        stmt = (
+            select(
+                Product.product_name,
+            )
+            .select_from(
+                Product
+            )
+        )
+        return conn.scalars(stmt).all()
+
+
 def select_shopping_trips(start_date, end_date):
     with get_db_engine().connect() as conn:
         stmt = (
