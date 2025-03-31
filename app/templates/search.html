@@ -133,7 +133,7 @@
     </style>
 
     <div class="search-container">
-    <form method="GET" action="{{ url_for('expenses.searches.search_purchases') }}" class="search-form">
+    <form method="GET" action="{{ url_for('expenses.purchases.search_purchases') }}" class="search-form">
         <div class="search-fields">
 
             <div class="date-range">
@@ -171,9 +171,9 @@
                 <thead>
                     <tr>
                         <th>Item</th>
-                        <th>Brand</th>
-                        <th>Quantity</th>
-                        <th>Unit Price</th>
+                        <th>Marca</th>
+                        <th>Quantidade</th>
+                        <th>Preço Unitário</th>
                         <th>Total</th>
                     </tr>
                 </thead>
@@ -182,7 +182,7 @@
                     <tr>
                         <td>{{ purchase.item }}</td>
                         <td class="brand-cell {% if not purchase.brand %}no-brand{% endif %}">
-                            {{ purchase.brand if purchase.brand else "Generic" }}
+                            {{ purchase.brand if purchase.brand else "-" }}
                         </td>
                         <td class="quantity">{{ "%.3f"|format(purchase.quantity) }}</td>
                         <td class="price">R$ {{ "%.2f"|format(purchase.price) }}</td>
@@ -193,7 +193,7 @@
             </table>
 
             <div class="total-amount">
-                Total Purchase: <span>R$ {{ "%.2f"|format(record.total) }}</span>
+                Valor Total: <span>R$ {{ "%.2f"|format(record.total) }}</span>
             </div>
         </div>
         {% endfor %}
