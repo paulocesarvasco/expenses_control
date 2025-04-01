@@ -97,7 +97,7 @@ def search_purchases():
                 res = SearchResponsePayload()
                 if trip_id not in committed_trips.keys():
                     res.store_name = store_name
-                    res.purchase_date = purchase_date
+                    res.purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').strftime('%d-%m-%Y')
                     res.total = total_amount
                     committed_trips[trip_id] = res
                 else:
