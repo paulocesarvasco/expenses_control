@@ -30,13 +30,15 @@ def save_purchase():
             logger.debug(data)
             raise RequestPayloadError('Missing required fields')
 
+        store_name = str(data['store_name'])
         trip = ShoppingTrip(
-            store_name=data['store_name'],
+            store_name=store_name.title(),
             purchase_date=datetime.strptime(data['purchase_date'], '%Y-%m-%d').date(),
             payment_method=data.get('payment_method'),
             notes=data.get('notes')
         )
         total = 0
+
 
         for item_data in data['items']:
             if not all(k in item_data for k in ['product_name', 'quantity', 'price']):
