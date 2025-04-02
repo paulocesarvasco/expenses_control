@@ -11,14 +11,11 @@ def create_app():
     from app.api import expenses_bp
     app.register_blueprint(expenses_bp)
 
-    from app.cli import database
+    from app.cli import categories, database, products
+    app.cli.add_command(categories.list_categories)
     app.cli.add_command(database.create_tables)
-    app.cli.add_command(database.register_category)
-    app.cli.add_command(database.list_categories)
-    app.cli.add_command(database.register_product)
-    app.cli.add_command(database.list_products)
-
-    print(app.url_map)
+    app.cli.add_command(products.list_products)
+    app.cli.add_command(products.register_product)
 
     logging.info('application started')
 

@@ -45,4 +45,4 @@ def list_categories():
 
         table = PrettyTable()
         table.add_column('Categorias', column=cats)
-        print(table)
+        click.echo(table)

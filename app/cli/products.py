@@ -1,4 +1,5 @@
 import click
+import csv
 import logging
 
 from app.services.database import db
@@ -25,12 +26,20 @@ def list_products():
         table = PrettyTable()
         table.add_column('Produtos', column=prod_list)
         table.add_column('Categorias', column=cat_list)
-        print(table)
+        click.echo(table)
 
 
 @click.command('register-product')
-def register_product():
+@click.option('-f', default=None, help='Path to csv file')
+def register_product(f):
     logging.info('Register product operation started')
+    if f is None:
+        register_product_interactvement()
+    else:
+        register_product_from_file(f)
+
+
+def register_product_interactvement():
     s = db.get_db_session()
     must_commit = False
     while True:
@@ -81,3 +90,36 @@ def register_product():
         except Exception as e:
             logging.error(e)
     s.close()
+
+
+def register_product_from_file(file_path):
+    click.echo('reading from csv file')
+    try:
+        cats = db.select_all_categories()
+        with open(file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.reader(file, delimiter=',')
+            header = next(reader)
+            if len(header) != 2:
+                raise ValueError(f"Expected 2 columns, got {len(header)}")
+
+
+            for row in reader:
+                if len(row) != 2:
+                    raise ValueError(f"Row has {len(row)} columns, expected 2")
+                s = db.get_db_session()
+                try:
+                    product = Product(
+                        product_name = row[0],
+                        category_id = cats[row[1]]
+                    )
+                    s.add(product)
+                    s.commit()
+                except Exception as e:
+                    click.echo(e, err=True)
+                    s.rollback()
+                finally:
+                    s.close()
+    except FileNotFoundError as e:
+        logging.error('file \'{}\' not found'.format(file_path))
+    except Exception as e:
+        logging.error('unexpected error to register products: {}'.format(e))
