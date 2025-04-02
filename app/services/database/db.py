@@ -3,7 +3,7 @@ from flask import g
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.utils.models import Product, PurchasedItem, ShoppingTrip
+from app.utils.models import Product, ProductCategory, PurchasedItem, ShoppingTrip
 from sqlalchemy import select
 
 
@@ -17,6 +17,20 @@ def get_db_session():
     engine = create_engine(os.getenv('DB_URL', ''), echo=False)
     Session = sessionmaker(bind=engine)
     return Session()
+
+
+def select_all_categories():
+    with get_db_engine().connect() as conn:
+        stmt = (
+            select(
+                ProductCategory.category_name,
+                ProductCategory.category_id
+            )
+            .select_from(
+                ProductCategory
+            )
+        )
+        return {str(row[0]):int(row[1]) for row in conn.execute(stmt).all()}
 
 
 def select_all_products():
