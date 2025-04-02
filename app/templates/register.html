@@ -26,6 +26,7 @@
                         <option value="Cartão de Débito">Cartão de Débito</option>
                         <option value="Dinheiro">Dinheiro</option>
                         <option value="PIX">PIX</option>
+                        <option value="Vale">Vale</option>
                     </select>
                 </div>
             </div>
@@ -38,17 +39,18 @@
             </div>
 
             <div id="items-container">
-                <div class="item-row" data-item-index="0">
+              <div class="item-row mb-3" data-item-index="0">
                     <div class="row g-3">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <label class="form-label">Nome do Produto</label>
                             <div class="input-group">
                                 <input type="text" class="form-control item-product" required list="productList">
-                                <button class="btn btn-outline-secondary" type="button" onclick="loadProducts()">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
                             </div>
                             <datalist id="productList"></datalist>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Marca</label>
+                            <input type="text" class="form-control item-brand">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Quantidade</label>
@@ -57,10 +59,6 @@
                         <div class="col-md-2">
                             <label class="form-label">Valor Pago (R$)</label>
                             <input type="number" class="form-control item-price" min="0.01" step="0.01" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Marca</label>
-                            <input type="text" class="form-control item-brand">
                         </div>
                         <div class="col-md-1 d-flex align-items-end">
                             <button type="button" class="btn btn-danger remove-item">✕</button>
@@ -173,22 +171,19 @@ document.addEventListener('DOMContentLoaded', function() {
         newItem.dataset.itemIndex = itemCount;
         newItem.innerHTML = `
             <div class="row g-3">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <div class="input-group">
                         <input type="text" class="form-control item-product" required list="productList">
-                        <button class="btn btn-outline-secondary" type="button" onclick="loadProducts()">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
                     </div>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control item-brand">
                 </div>
                 <div class="col-md-2">
                     <input type="number" class="form-control item-quantity" min="0.001" step="0.001" required>
                 </div>
                 <div class="col-md-2">
                     <input type="number" class="form-control item-price" min="0.01" step="0.01" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="text" class="form-control item-brand">
                 </div>
                 <div class="col-md-1 d-flex align-items-center">
                     <button type="button" class="btn btn-danger remove-item">✕</button>

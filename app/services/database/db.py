@@ -74,6 +74,9 @@ def select_shopping_trips(start_date, end_date):
             .where(
                 Product.product_id == PurchasedItem.product_id
             )
+            .order_by(
+                ShoppingTrip.purchase_date.desc()
+            )
         )
         return conn.execute(stmt).all()
 
