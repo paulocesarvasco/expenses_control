@@ -92,3 +92,23 @@ def select_product_id(product:str):
             )
         )
         return conn.scalars(stmt).first()
+
+
+def select_shoppings_by_category():
+    with get_db_engine().connect() as conn:
+        stmt = (
+            select(
+                Product.product_name,
+                PurchasedItem.total_price,
+                ProductCategory.category_name
+            )
+            .where(
+                PurchasedItem.product_id == Product.product_id,
+                Product.category_id == ProductCategory.category_id
+            )
+            .order_by(
+                Product.product_name
+            )
+        )
+        res = conn.execute(stmt).all()
+    return [r._mapping for r in res]
