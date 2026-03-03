@@ -15,8 +15,7 @@ RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
 
 COPY pyproject.toml poetry.lock ./
 
-RUN poetry install --no-interaction --no-ansi \
-    && pip install --no-cache-dir "psycopg[binary]>=3.2,<4.0"
+RUN poetry install --no-interaction --no-ansi
 
 COPY . .
 
