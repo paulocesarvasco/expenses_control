@@ -1,9 +1,10 @@
 from app.services.database import Session, db
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
-from app.utils.models import ShoppingTrip, PurchasedItem
+from app.utils.models import Product, PurchasedItem, ShoppingTrip
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify
 from http import HTTPStatus
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.utils.models.payloads import SearchResponsePayload
@@ -15,7 +16,7 @@ purchases_bp = Blueprint('purchases', __name__, url_prefix='/purchase')
 
 @purchases_bp.route('/register_form')
 def get_registry_form():
-    return render_template('register.html')
+    return render_template('register.html', active_page='register')
 
 
 @purchases_bp.route('/save', methods=['POST'])
@@ -123,7 +124,163 @@ def search_purchases():
 
 
         # return jsonify(list_results), HTTPStatus.OK
-        return render_template('search.html', data=list_results)
+        return render_template('search.html', data=list_results, active_page='search')
 
     except Exception as e:
         return jsonify({'error': str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@purchases_bp.route('/list')
+def list_purchases():
+    session = Session()
+    try:
+        stmt = (
+            select(
+                ShoppingTrip.trip_id,
+                ShoppingTrip.store_name,
+                ShoppingTrip.purchase_date,
+                ShoppingTrip.payment_method,
+                ShoppingTrip.total_amount
+            )
+            .order_by(ShoppingTrip.purchase_date.desc())
+        )
+        rows = session.execute(stmt).all()
+        payload = [
+            {
+                'trip_id': row.trip_id,
+                'store_name': row.store_name,
+                'purchase_date': row.purchase_date,
+                'payment_method': row.payment_method,
+                'total_amount': float(row.total_amount) if row.total_amount is not None else 0.0
+            }
+            for row in rows
+        ]
+        return jsonify(payload), HTTPStatus.OK
+    except SQLAlchemyError as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+    finally:
+        session.close()
+
+
+@purchases_bp.route('/<int:trip_id>/items')
+def list_purchase_items(trip_id):
+    session = Session()
+    try:
+        stmt = (
+            select(
+                PurchasedItem.item_id,
+                PurchasedItem.trip_id,
+                Product.product_name,
+                PurchasedItem.brand,
+                PurchasedItem.quantity,
+                PurchasedItem.unit_price,
+                PurchasedItem.total_price
+            )
+            .join(
+                Product,
+                PurchasedItem.product_id == Product.product_id
+            )
+            .where(PurchasedItem.trip_id == trip_id)
+        )
+        rows = session.execute(stmt).all()
+        payload = [
+            {
+                'item_id': row.item_id,
+                'trip_id': row.trip_id,
+                'product_name': row.product_name,
+                'brand': row.brand,
+                'quantity': float(row.quantity),
+                'unit_price': float(row.unit_price),
+                'total_price': float(row.total_price)
+            }
+            for row in rows
+        ]
+        return jsonify(payload), HTTPStatus.OK
+    except SQLAlchemyError as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+    finally:
+        session.close()
+
+
+@purchases_bp.route('/<int:trip_id>', methods=['PATCH'])
+def update_purchase(trip_id):
+    session = Session()
+    try:
+        trip = session.get(ShoppingTrip, trip_id)
+        if trip is None:
+            return jsonify({'error': f'No shopping trip found with ID {trip_id}'}), HTTPStatus.NOT_FOUND
+
+        data = request.get_json() or {}
+        store_name = data.get('store_name', trip.store_name)
+        purchase_date = data.get('purchase_date', trip.purchase_date)
+        payment_method = data.get('payment_method', trip.payment_method)
+
+        if data.get('purchase_date') is not None:
+            datetime.strptime(str(data['purchase_date']), '%Y-%m-%d')
+
+        ok, msg = db.update_shopping_trip(trip_id, payment_method, purchase_date, store_name)
+        if not ok:
+            return jsonify({'error': msg}), HTTPStatus.BAD_REQUEST
+
+        return jsonify(
+            {
+                'message': msg,
+                'trip_id': trip_id,
+                'store_name': store_name,
+                'purchase_date': purchase_date,
+                'payment_method': payment_method
+            }
+        ), HTTPStatus.OK
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), HTTPStatus.BAD_REQUEST
+    except SQLAlchemyError as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+    finally:
+        session.close()
+
+
+@purchases_bp.route('/item/<int:item_id>', methods=['PATCH'])
+def update_purchase_item(item_id):
+    session = Session()
+    try:
+        item = session.get(PurchasedItem, item_id)
+        if item is None:
+            return jsonify({'error': f'No purchased item found with ID {item_id}'}), HTTPStatus.NOT_FOUND
+
+        data = request.get_json() or {}
+        brand = data.get('brand', item.brand)
+        quantity = float(data.get('quantity', item.quantity))
+
+        if quantity <= 0:
+            return jsonify({'error': 'Quantity must be greater than zero'}), HTTPStatus.BAD_REQUEST
+
+        if data.get('unit_price') is not None:
+            unit_price = float(data['unit_price'])
+        elif data.get('total_price') is not None:
+            unit_price = float(data['total_price']) / quantity
+        else:
+            unit_price = float(item.unit_price)
+
+        if unit_price <= 0:
+            return jsonify({'error': 'Unit price must be greater than zero'}), HTTPStatus.BAD_REQUEST
+
+        ok, msg = db.update_purchased_item(item_id, brand, quantity, unit_price)
+        if not ok:
+            return jsonify({'error': msg}), HTTPStatus.BAD_REQUEST
+
+        return jsonify(
+            {
+                'message': msg,
+                'item_id': item_id,
+                'brand': brand,
+                'quantity': quantity,
+                'unit_price': unit_price,
+                'total_price': quantity * unit_price
+            }
+        ), HTTPStatus.OK
+    except ValueError:
+        return jsonify({'error': 'Invalid payload for numeric fields'}), HTTPStatus.BAD_REQUEST
+    except SQLAlchemyError as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+    finally:
+        session.close()
