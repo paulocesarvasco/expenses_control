@@ -1,78 +1,77 @@
 {% extends "base.html" %}
 
 {% block title %}Extrato{% endblock %}
-
 {% block content_title %}Extrato de Compras{% endblock %}
 
 {% block content %}
-    <style>
-        .purchase-card {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        .store-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .store-name {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #3498db;
-        }
-        .purchase-date {
-            color: #7f8c8d;
-            font-style: italic;
-        }
-        .total-amount {
-            text-align: right;
-            font-size: 1.2em;
-            margin: 10px 0;
-        }
-        .total-amount span {
-            font-weight: bold;
-            color: #27ae60;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th {
-            background-color: #3498db;
-            color: white;
-            padding: 12px;
-            text-align: left;
-        }
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #e3f2fd;
-        }
-        .brand-cell {
-            font-style: italic;
-            color: #7f8c8d;
-        }
-        .no-brand {
-            color: #95a5a6;
-        }
-        .price {
-            text-align: left;
-            font-family: monospace;
-        }
-        .quantity {
-            text-align: left;
-        }
+<style>
+    .purchase-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    .store-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .store-name {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #3498db;
+    }
+    .purchase-date {
+        color: #7f8c8d;
+        font-style: italic;
+    }
+    .total-amount {
+        text-align: right;
+        font-size: 1.2em;
+        margin: 10px 0;
+    }
+    .total-amount span {
+        font-weight: bold;
+        color: #27ae60;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    th {
+        background-color: #3498db;
+        color: white;
+        padding: 12px;
+        text-align: left;
+    }
+    td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+    tr:hover {
+        background-color: #e3f2fd;
+    }
+    .brand-cell {
+        font-style: italic;
+        color: #7f8c8d;
+    }
+    .no-brand {
+        color: #95a5a6;
+    }
+    .price {
+        text-align: left;
+        font-family: monospace;
+    }
+    .quantity {
+        text-align: left;
+    }
     .search-container {
         margin-bottom: 20px;
         padding: 15px;
@@ -80,43 +79,36 @@
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
     .search-form {
         display: flex;
         justify-content: flex-end;
     }
-
     .search-fields {
         display: flex;
         align-items: flex-end;
         gap: 15px;
     }
-
     .date-range {
         display: flex;
         gap: 10px;
         align-items: center;
     }
-
     .date-input {
         display: flex;
         flex-direction: column;
         gap: 5px;
     }
-
     .date-input label {
         font-size: 0.9em;
         color: #555;
         text-align: right;
     }
-
     .date-picker {
         padding: 8px;
         border: 1px solid #ddd;
         border-radius: 4px;
         font-family: inherit;
     }
-
     .search-button {
         padding: 10px 20px;
         background-color: #3498db;
@@ -127,29 +119,23 @@
         white-space: nowrap;
         margin-left: 10px;
     }
-
     .search-button:hover {
         background-color: #2980b9;
     }
-    </style>
+</style>
 
-    <div class="search-container">
+<div class="search-container">
     <form method="GET" action="{{ url_for('expenses.purchases.search_purchases') }}" class="search-form">
         <div class="search-fields">
-
             <div class="date-range">
                 <div class="date-input">
-                  <label for="start_date">Início:</label>
-                    <input type="date" id="start" name="start"
-                           value="{{ request.args.get('start', '') }}"
-                           class="date-picker">
+                    <label for="start">Início:</label>
+                    <input type="date" id="start" name="start" value="{{ request.args.get('start', '') }}" class="date-picker">
                 </div>
 
                 <div class="date-input">
-                    <label for="end_date">Fim:</label>
-                    <input type="date" id="end" name="end"
-                           value="{{ request.args.get('end', '') }}"
-                           class="date-picker">
+                    <label for="end">Fim:</label>
+                    <input type="date" id="end" name="end" value="{{ request.args.get('end', '') }}" class="date-picker">
                 </div>
             </div>
 
@@ -158,49 +144,47 @@
     </form>
 </div>
 
-
-
-    {% if data %}
-        {% for record in data %}
-        <div class="purchase-card">
-            <div class="store-header">
-                <div class="store-name">{{ record.store_name }}</div>
-                <div class="purchase-date">{{ record.purchase_date }}</div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Marca</th>
-                        <th>Quantidade</th>
-                        <th>Preço Unitário</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for purchase in record.purchases %}
-                    <tr>
-                        <td>{{ purchase.item }}</td>
-                        <td class="brand-cell {% if not purchase.brand %}no-brand{% endif %}">
-                            {{ purchase.brand if purchase.brand else "-" }}
-                        </td>
-                        <td class="quantity">{{ "%.3f"|format(purchase.quantity) }}</td>
-                        <td class="price">R$ {{ "%.2f"|format(purchase.price) }}</td>
-                        <td class="price">R$ {{ "%.2f"|format(purchase.price * purchase.quantity) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <div class="total-amount">
-                Valor Total: <span>R$ {{ "%.2f"|format(record.total) }}</span>
-            </div>
+{% if data %}
+    {% for record in data %}
+    <div class="purchase-card">
+        <div class="store-header">
+            <div class="store-name">{{ record.store_name }}</div>
+            <div class="purchase-date">{{ record.purchase_date }}</div>
         </div>
-        {% endfor %}
-    {% else %}
-        <div class="alert alert-info">
-            No purchase records found{% if request.args.get('query') %} matching your search criteria{% endif %}.
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Marca</th>
+                    <th>Quantidade</th>
+                    <th>Preço Unitário</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in record.purchases %}
+                <tr>
+                    <td>{{ purchase.item }}</td>
+                    <td class="brand-cell {% if not purchase.brand %}no-brand{% endif %}">
+                        {{ purchase.brand if purchase.brand else "-" }}
+                    </td>
+                    <td class="quantity">{{ "%.3f"|format(purchase.quantity) }}</td>
+                    <td class="price">R$ {{ "%.2f"|format(purchase.price) }}</td>
+                    <td class="price">R$ {{ "%.2f"|format(purchase.price * purchase.quantity) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total-amount">
+            Valor Total: <span>R$ {{ "%.2f"|format(record.total) }}</span>
         </div>
-    {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">
+        No purchase records found{% if request.args.get('query') %} matching your search criteria{% endif %}.
+    </div>
+{% endif %}
 {% endblock %}

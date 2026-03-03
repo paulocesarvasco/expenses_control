@@ -82,12 +82,28 @@
       </div>
 
       <ul class="sidebar-nav">
-        <li><a href="{{ url_for('expenses.purchases.search_purchases') }}" class="{% if active_page == 'dashboard' %}active{% endif %}">
+        <li><a href="{{ url_for('expenses.purchases.search_purchases') }}" class="{% if active_page == 'search' %}active{% endif %}">
             <i class="fas fa-home"></i> Consultas
         </a></li>
 
-        <li><a href="{{ url_for('expenses.purchases.get_registry_form') }}" class="{% if active_page == 'dashboard' %}active{% endif %}">
+        <li><a href="{{ url_for('expenses.purchases.get_registry_form') }}" class="{% if active_page == 'register' %}active{% endif %}">
             <i class="fas fa-home"></i> Registrar Compra
+        </a></li>
+
+        <li><a href="{{ url_for('expenses.catalog_page') }}" class="{% if active_page == 'catalog' %}active{% endif %}">
+            <i class="fas fa-home"></i> Categorias e Produtos
+        </a></li>
+
+        <li><a href="{{ url_for('expenses.purchases_manage_page') }}" class="{% if active_page == 'purchase_manage' %}active{% endif %}">
+            <i class="fas fa-home"></i> Gerenciar Compras
+        </a></li>
+
+        <li><a href="{{ url_for('expenses.items_manage_page') }}" class="{% if active_page == 'item_manage' %}active{% endif %}">
+            <i class="fas fa-home"></i> Gerenciar Itens
+        </a></li>
+
+        <li><a href="{{ url_for('expenses.items_report_page') }}" class="{% if active_page == 'item_report' %}active{% endif %}">
+            <i class="fas fa-home"></i> Relatorio de Itens
         </a></li>
 
         <!-- Add more navigation items as needed -->

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Compras{% endblock %}
+{% block content_title %}Gerenciar Compras{% endblock %}
+
+{% block content %}
+<div class="purchase-card">
+    <div class="row g-3">
+        <div class="col-md-8">
+            <button type="button" class="btn btn-primary btn-sm mb-2" id="refreshPurchasesBtn">Atualizar Compras</button>
+            <div class="table-responsive">
+                <table class="table table-sm" id="purchaseListTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Loja</th>
+                            <th>Data</th>
+                            <th>Pagamento</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <h6>Editar Compra</h6>
+            <form id="updateTripForm">
+                <div class="mb-2">
+                    <label class="form-label">Trip ID</label>
+                    <input type="number" class="form-control form-control-sm" id="tripIdInput" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Loja</label>
+                    <input type="text" class="form-control form-control-sm" id="tripStoreInput">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Data</label>
+                    <input type="date" class="form-control form-control-sm" id="tripDateInput">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Pagamento</label>
+                    <input type="text" class="form-control form-control-sm" id="tripPaymentInput">
+                </div>
+                <button class="btn btn-success btn-sm" type="submit">Salvar Compra</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const refreshPurchasesBtn = document.getElementById('refreshPurchasesBtn');
+    const updateTripForm = document.getElementById('updateTripForm');
+
+    refreshPurchasesBtn.addEventListener('click', loadPurchases);
+    updateTripForm.addEventListener('submit', updateTrip);
+    loadPurchases();
+
+    async function loadPurchases() {
+        const tbody = document.querySelector('#purchaseListTable tbody');
+        tbody.innerHTML = '';
+
+        const response = await fetch('{{ url_for("expenses.purchases.list_purchases") }}');
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao buscar compras');
+            return;
+        }
+
+        payload.forEach(purchase => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${purchase.trip_id}</td>
+                <td>${purchase.store_name || ''}</td>
+                <td>${purchase.purchase_date || ''}</td>
+                <td>${purchase.payment_method || ''}</td>
+                <td>R$ ${Number(purchase.total_amount).toFixed(2)}</td>
+            `;
+            row.addEventListener('click', function() {
+                document.getElementById('tripIdInput').value = purchase.trip_id;
+                document.getElementById('tripStoreInput').value = purchase.store_name || '';
+                document.getElementById('tripDateInput').value = purchase.purchase_date || '';
+                document.getElementById('tripPaymentInput').value = purchase.payment_method || '';
+            });
+            tbody.appendChild(row);
+        });
+    }
+
+    async function updateTrip(event) {
+        event.preventDefault();
+        const tripId = Number(document.getElementById('tripIdInput').value);
+        if (!tripId) {
+            alert('Trip ID inválido');
+            return;
+        }
+
+        const body = {};
+        const store = document.getElementById('tripStoreInput').value.trim();
+        const date = document.getElementById('tripDateInput').value;
+        const payment = document.getElementById('tripPaymentInput').value.trim();
+        if (store) body.store_name = store;
+        if (date) body.purchase_date = date;
+        if (payment) body.payment_method = payment;
+
+        const response = await fetch(`/v1/purchase/${tripId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao atualizar compra');
+            return;
+        }
+
+        alert(payload.message || 'Compra atualizada com sucesso');
+        loadPurchases();
+    }
+});
+</script>
+{% endblock %}

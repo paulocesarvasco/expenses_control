@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block title %}Registro{% endblock %}
-
 {% block content_title %}Registrar nova compra{% endblock %}
 
 {% block content %}
@@ -39,7 +38,7 @@
             </div>
 
             <div id="items-container">
-              <div class="item-row mb-3" data-item-index="0">
+                <div class="item-row mb-3" data-item-index="0">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Nome do Produto</label>
@@ -79,7 +78,6 @@
     </form>
 </div>
 
-<!-- Toast Notifications -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
     <div id="successToast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
@@ -95,24 +93,17 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const successToast = new bootstrap.Toast(document.getElementById('successToast'));
     const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
     const form = document.getElementById('purchaseForm');
 
-    // Set today's date as default
     document.getElementById('purchaseDate').valueAsDate = new Date();
-
-    // Load products on page load
     loadProducts();
 
-    // Add item button functionality
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
 
-    // Remove item functionality
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-item')) {
             if (document.querySelectorAll('.item-row').length > 1) {
@@ -124,14 +115,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form submission
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         const submitButton = e.target.querySelector('button[type="submit"]');
         const submitText = document.getElementById('submitText');
         const spinner = document.getElementById('loadingSpinner');
 
-        // Show loading state
         submitText.textContent = 'Processando...';
         spinner.style.display = 'inline-block';
         submitButton.disabled = true;
@@ -140,9 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = collectFormData();
             const response = await fetch('{{ url_for("expenses.purchases.save_purchase") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
@@ -151,10 +138,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => window.location.reload(), 1000);
             } else {
                 const error = await response.json();
-                throw new Error(error.message || 'Erro ao registrar compra');
+                throw new Error(error.error || 'Erro ao registrar compra');
             }
         } catch (error) {
-            console.error('Error:', error);
             showError(error.message);
         } finally {
             submitText.textContent = 'Registrar Compra';
@@ -201,21 +187,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const productList = document.getElementById('productList');
                 productList.innerHTML = '';
 
-                // Simplified for array of strings
                 products.forEach(productName => {
                     const option = document.createElement('option');
                     option.value = productName;
                     productList.appendChild(option);
                 });
             } else {
-                throw new Error('Failed to load products');
+                throw new Error('Falha ao carregar produtos');
             }
         } catch (error) {
-            console.error('Error loading products:', error);
-            showError('Erro ao carregar lista de produtos');
+            showError(error.message);
         }
     }
-
 
     function reindexItems() {
         document.querySelectorAll('.item-row').forEach((row, index) => {
@@ -249,8 +232,5 @@ document.addEventListener('DOMContentLoaded', function() {
         errorToast.show();
     }
 });
-
-// Make loadProducts available globally for button clicks
-window.loadProducts = loadProducts;
 </script>
 {% endblock %}

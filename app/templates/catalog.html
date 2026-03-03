@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Categorias e Produtos{% endblock %}
+{% block content_title %}Categorias e Produtos{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Criar Categoria</h4>
+        <div class="input-group">
+            <input type="text" class="form-control" id="newCategoryName" placeholder="Ex: Limpeza">
+            <button class="btn btn-primary" type="button" id="createCategoryBtn">Criar Categoria</button>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Criar Produto</h4>
+        <div class="input-group">
+            <input type="text" class="form-control" id="newProductName" placeholder="Ex: Sabonete">
+            <select class="form-select" id="newProductCategory"></select>
+            <button class="btn btn-success" type="button" id="createProductBtn">Criar Produto</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-3">Produtos Cadastrados</h4>
+        <button class="btn btn-outline-secondary btn-sm mb-2" id="refreshProductsBtn" type="button">Atualizar Lista</button>
+        <div class="table-responsive">
+            <table class="table table-sm" id="productsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Produto</th>
+                        <th>Categoria</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('newProductCategory');
+    const createCategoryBtn = document.getElementById('createCategoryBtn');
+    const createProductBtn = document.getElementById('createProductBtn');
+    const refreshProductsBtn = document.getElementById('refreshProductsBtn');
+
+    createCategoryBtn.addEventListener('click', createCategory);
+    createProductBtn.addEventListener('click', createProduct);
+    refreshProductsBtn.addEventListener('click', loadProductsDetailed);
+
+    loadCategories();
+    loadProductsDetailed();
+
+    async function loadCategories() {
+        const response = await fetch('{{ url_for("expenses.categories.list_categories") }}');
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao buscar categorias');
+            return;
+        }
+
+        categorySelect.innerHTML = '';
+        payload.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.category_id;
+            option.textContent = category.category_name;
+            categorySelect.appendChild(option);
+        });
+    }
+
+    async function createCategory() {
+        const input = document.getElementById('newCategoryName');
+        const categoryName = input.value.trim();
+        if (!categoryName) {
+            alert('Informe o nome da categoria');
+            return;
+        }
+
+        const response = await fetch('{{ url_for("expenses.categories.register_category") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category_name: categoryName })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao criar categoria');
+            return;
+        }
+
+        input.value = '';
+        await loadCategories();
+        alert(payload.message || 'Categoria criada com sucesso');
+    }
+
+    async function createProduct() {
+        const input = document.getElementById('newProductName');
+        const productName = input.value.trim();
+        const categoryId = Number(categorySelect.value);
+        if (!productName) {
+            alert('Informe o nome do produto');
+            return;
+        }
+        if (!categoryId) {
+            alert('Selecione uma categoria');
+            return;
+        }
+
+        const response = await fetch('{{ url_for("expenses.products.register_product") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_name: productName, category_id: categoryId })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao criar produto');
+            return;
+        }
+
+        input.value = '';
+        await loadProductsDetailed();
+        alert(payload.message || 'Produto criado com sucesso');
+    }
+
+    async function loadProductsDetailed() {
+        const tbody = document.querySelector('#productsTable tbody');
+        tbody.innerHTML = '';
+
+        const response = await fetch('{{ url_for("expenses.products.list_products_detailed") }}');
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao buscar produtos');
+            return;
+        }
+
+        payload.forEach(product => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${product.product_id}</td>
+                <td>${product.product_name}</td>
+                <td>${product.category_name}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+});
+</script>
+{% endblock %}

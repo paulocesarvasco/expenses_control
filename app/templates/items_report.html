@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Relatorio de Itens{% endblock %}
+{% block content_title %}Relatorio de Itens por Categoria{% endblock %}
+
+{% block content %}
+<div class="purchase-card">
+    <button type="button" class="btn btn-primary btn-sm mb-2" id="refreshCategoryItemsBtn">Atualizar Relatorio</button>
+    <div class="table-responsive">
+        <table class="table table-sm" id="itemsByCategoryTable">
+            <thead>
+                <tr>
+                    <th>Produto</th>
+                    <th>Categoria</th>
+                    <th>Total Pago</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const refreshCategoryItemsBtn = document.getElementById('refreshCategoryItemsBtn');
+    refreshCategoryItemsBtn.addEventListener('click', loadItemsByCategory);
+    loadItemsByCategory();
+
+    async function loadItemsByCategory() {
+        const tbody = document.querySelector('#itemsByCategoryTable tbody');
+        tbody.innerHTML = '';
+
+        const response = await fetch('{{ url_for("expenses.items.list_items") }}');
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao buscar itens por categoria');
+            return;
+        }
+
+        payload.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.product_name}</td>
+                <td>${item.category_name}</td>
+                <td>R$ ${Number(item.total_price).toFixed(2)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+});
+</script>
+{% endblock %}

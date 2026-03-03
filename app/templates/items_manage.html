@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Itens{% endblock %}
+{% block content_title %}Gerenciar Itens{% endblock %}
+
+{% block content %}
+<div class="purchase-card">
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="input-group input-group-sm mb-2">
+                <input type="number" class="form-control" id="itemsTripIdInput" placeholder="Trip ID">
+                <button class="btn btn-outline-primary" type="button" id="loadItemsBtn">Carregar Itens</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm" id="tripItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Item ID</th>
+                            <th>Produto</th>
+                            <th>Marca</th>
+                            <th>Qtd</th>
+                            <th>Unitário</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <h6>Editar Item</h6>
+            <form id="updateItemForm">
+                <div class="mb-2">
+                    <label class="form-label">Item ID</label>
+                    <input type="number" class="form-control form-control-sm" id="itemIdInput" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Marca</label>
+                    <input type="text" class="form-control form-control-sm" id="itemBrandInput">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Quantidade</label>
+                    <input type="number" step="0.001" class="form-control form-control-sm" id="itemQtyInput">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Valor Total</label>
+                    <input type="number" step="0.01" class="form-control form-control-sm" id="itemTotalInput">
+                </div>
+                <button class="btn btn-success btn-sm" type="submit">Salvar Item</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loadItemsBtn = document.getElementById('loadItemsBtn');
+    const updateItemForm = document.getElementById('updateItemForm');
+
+    loadItemsBtn.addEventListener('click', loadTripItems);
+    updateItemForm.addEventListener('submit', updateItem);
+
+    async function loadTripItems() {
+        const tripId = Number(document.getElementById('itemsTripIdInput').value);
+        const tbody = document.querySelector('#tripItemsTable tbody');
+        tbody.innerHTML = '';
+        if (!tripId) {
+            alert('Informe um Trip ID válido');
+            return;
+        }
+
+        const response = await fetch(`/v1/purchase/${tripId}/items`);
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao buscar itens');
+            return;
+        }
+
+        payload.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.item_id}</td>
+                <td>${item.product_name}</td>
+                <td>${item.brand || '-'}</td>
+                <td>${Number(item.quantity).toFixed(3)}</td>
+                <td>R$ ${Number(item.unit_price).toFixed(2)}</td>
+                <td>R$ ${Number(item.total_price).toFixed(2)}</td>
+            `;
+            row.addEventListener('click', function() {
+                document.getElementById('itemIdInput').value = item.item_id;
+                document.getElementById('itemBrandInput').value = item.brand || '';
+                document.getElementById('itemQtyInput').value = item.quantity;
+                document.getElementById('itemTotalInput').value = Number(item.total_price).toFixed(2);
+            });
+            tbody.appendChild(row);
+        });
+    }
+
+    async function updateItem(event) {
+        event.preventDefault();
+        const itemId = Number(document.getElementById('itemIdInput').value);
+        if (!itemId) {
+            alert('Item ID inválido');
+            return;
+        }
+
+        const body = {};
+        const brand = document.getElementById('itemBrandInput').value.trim();
+        const qty = document.getElementById('itemQtyInput').value;
+        const total = document.getElementById('itemTotalInput').value;
+        if (brand) body.brand = brand;
+        if (qty) body.quantity = Number(qty);
+        if (total) body.total_price = Number(total);
+
+        const response = await fetch(`/v1/purchase/item/${itemId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            alert(payload.error || 'Erro ao atualizar item');
+            return;
+        }
+
+        alert(payload.message || 'Item atualizado com sucesso');
+        loadTripItems();
+    }
+});
+</script>
+{% endblock %}
