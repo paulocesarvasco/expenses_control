@@ -3,17 +3,19 @@ name = "expenses-control"
 version = "0.1.0"
 description = "Rest API to registry and visualization of domestic expenses"
 authors = [
-    {name = "paulocesarvasco",email = "paulocvasco.93@gmail.com"}
+  { name = "paulocesarvasco", email = "paulocvasco.93@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "flask (>=3.1.0,<4.0.0)",
-    "sqlalchemy (>=2.0.39,<3.0.0)",
-    "dotenv (>=0.9.9,<0.10.0)",
-    "pymysql (>=1.1.1,<2.0.0)",
-    "prettytable (>=3.16.0,<4.0.0)"
+  "flask>=3.1.0,<4.0.0",
+  "sqlalchemy>=2.0.39,<3.0.0",
+  "python-dotenv>=1.0.0,<2.0.0",
+  "pymysql>=1.1.1,<2.0.0",
+  "prettytable>=3.16.0,<4.0.0",
 ]
+
+[tool.poetry]
 package-mode = false
 
 [build-system]
