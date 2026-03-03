@@ -13,6 +13,12 @@ def get_db_engine():
     return g.db
 
 
+def close_db(_exception=None):
+    engine = g.pop('db', None)
+    if engine is not None:
+        engine.dispose()
+
+
 def get_db_session():
     engine = create_engine(os.getenv('DB_URL', ''), echo=False)
     Session = sessionmaker(bind=engine)

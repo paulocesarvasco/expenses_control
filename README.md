@@ -45,6 +45,15 @@ poetry run flask --app app:create_app --debug run
 
 By default, Flask serves at: `http://127.0.0.1:5000`
 
+Production (WSGI) run command:
+
+```bash
+poetry run gunicorn -c gunicorn.conf.py 'app:create_app()'
+```
+
+Gunicorn settings are centralized in `gunicorn.conf.py` and can be overridden with env vars like:
+`GUNICORN_BIND`, `GUNICORN_WORKERS`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT`.
+
 ## Run with Docker + PostgreSQL
 
 The repository now includes `Dockerfile` and `docker-compose.yml` with:
@@ -57,6 +66,8 @@ Start the full stack:
 ```bash
 docker compose up --build
 ```
+
+The app container starts with Gunicorn (WSGI) in production mode.
 
 App URL:
 

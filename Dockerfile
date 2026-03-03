@@ -21,4 +21,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "poetry run flask --app app:create_app init-db && poetry run flask --app app:create_app run --host=0.0.0.0 --port=5000"]
+CMD ["sh", "-c", "poetry run flask --app app:create_app init-db && exec poetry run gunicorn -c gunicorn.conf.py 'app:create_app()'"]
