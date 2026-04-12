@@ -1,7 +1,14 @@
 from app.services.database import Session, db
+from app.services.purchase_service import (
+    create_purchase_from_payload,
+    date_to_iso,
+    normalize_purchase_item_update_payload,
+    normalize_purchase_update_payload,
+    parse_iso_date,
+)
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
 from app.utils.models import Product, PurchasedItem, ShoppingTrip
-from datetime import date, datetime
+from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify
 from http import HTTPStatus
 from sqlalchemy import select
@@ -15,18 +22,6 @@ logger = logging.getLogger('views')
 purchases_bp = Blueprint('purchases', __name__, url_prefix='/purchase')
 
 
-def _parse_iso_date(value: str) -> date:
-    return datetime.strptime(str(value), '%Y-%m-%d').date()
-
-
-def _date_to_iso(value) -> str:
-    if isinstance(value, date):
-        return value.isoformat()
-    if isinstance(value, str):
-        return _parse_iso_date(value).isoformat()
-    raise ValueError('Invalid date value')
-
-
 @purchases_bp.route('/register_form')
 def get_registry_form():
     return render_template('register.html', active_page='register')
@@ -37,47 +32,7 @@ def save_purchase():
     s = Session()
     try:
         data = request.get_json()
-
-        required_fields = ['store_name', 'purchase_date', 'items']
-        if not all(field in data for field in required_fields):
-            logger.error({'error': 'Missing required fields'})
-            logger.debug(data)
-            raise RequestPayloadError('Missing required fields')
-
-        store_name = str(data['store_name'])
-        trip = ShoppingTrip(
-            store_name=store_name.title(),
-            purchase_date=_parse_iso_date(data['purchase_date']),
-            payment_method=data.get('payment_method'),
-            notes=data.get('notes')
-        )
-        total = 0
-
-
-        for item_data in data['items']:
-            if not all(k in item_data for k in ['product_name', 'quantity', 'price']):
-                logger.error({'error': 'Missing required fields'})
-                logger.debug(data)
-                raise RequestPayloadError('Missing item fields')
-
-
-            product_id = db.select_product_id(product=item_data['product_name'])
-            if product_id is None:
-                raise ProductError('product not registered')
-
-            purchased_item = PurchasedItem(
-                trip=trip,
-                product_id=product_id,
-                quantity=item_data['quantity'],
-                unit_price=(item_data['price']/item_data['quantity']),
-                brand=item_data.get('brand')
-            )
-            s.add(purchased_item)
-
-            total += item_data['price']
-
-        trip.total_amount = total
-        s.add(trip)
+        trip = create_purchase_from_payload(s, data)
         s.commit()
 
         return jsonify({
@@ -94,6 +49,8 @@ def save_purchase():
     except Exception as e:
         s.rollback()
         return jsonify({'error': f'Unexpected error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+    finally:
+        s.close()
 
 
 @purchases_bp.route('/search')
@@ -105,8 +62,8 @@ def search_purchases():
         if end_date is None:
             end_date = (datetime.now()).strftime('%Y-%m-%d')
 
-        start_date = _parse_iso_date(start_date)
-        end_date = _parse_iso_date(end_date)
+        start_date = parse_iso_date(start_date)
+        end_date = parse_iso_date(end_date)
 
         trips = db.select_shopping_trips(start_date, end_date)
         committed_trips = dict()
@@ -117,7 +74,7 @@ def search_purchases():
                 if trip_id not in committed_trips.keys():
                     res.store_name = store_name
                     res.purchase_date = datetime.strptime(
-                        _date_to_iso(purchase_date), '%Y-%m-%d'
+                        date_to_iso(purchase_date), '%Y-%m-%d'
                     ).strftime('%d-%m-%Y')
                     res.total = total_amount
                     committed_trips[trip_id] = res
@@ -167,7 +124,7 @@ def list_purchases():
             {
                 'trip_id': row.trip_id,
                 'store_name': row.store_name,
-                'purchase_date': _date_to_iso(row.purchase_date),
+                'purchase_date': date_to_iso(row.purchase_date),
                 'payment_method': row.payment_method,
                 'total_amount': float(row.total_amount) if row.total_amount is not None else 0.0
             }
@@ -228,15 +185,10 @@ def update_purchase(trip_id):
         if trip is None:
             return jsonify({'error': f'No shopping trip found with ID {trip_id}'}), HTTPStatus.NOT_FOUND
 
-        data = request.get_json() or {}
-        store_name = data.get('store_name', trip.store_name)
-        purchase_date = data.get('purchase_date', trip.purchase_date)
-        payment_method = data.get('payment_method', trip.payment_method)
-
-        if data.get('purchase_date') is not None:
-            purchase_date = _parse_iso_date(data['purchase_date'])
-        else:
-            purchase_date = _parse_iso_date(purchase_date) if isinstance(purchase_date, str) else purchase_date
+        store_name, purchase_date, payment_method = normalize_purchase_update_payload(
+            request.get_json() or {},
+            trip
+        )
 
         ok, msg = db.update_shopping_trip(trip_id, payment_method, purchase_date, store_name)
         if not ok:
@@ -247,12 +199,12 @@ def update_purchase(trip_id):
                 'message': msg,
                 'trip_id': trip_id,
                 'store_name': store_name,
-                'purchase_date': _date_to_iso(purchase_date),
+                'purchase_date': date_to_iso(purchase_date),
                 'payment_method': payment_method
             }
         ), HTTPStatus.OK
-    except ValueError:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), HTTPStatus.BAD_REQUEST
+    except (ValueError, RequestPayloadError) as e:
+        return jsonify({'error': str(e)}), HTTPStatus.BAD_REQUEST
     except SQLAlchemyError as e:
         return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
     finally:
@@ -267,22 +219,10 @@ def update_purchase_item(item_id):
         if item is None:
             return jsonify({'error': f'No purchased item found with ID {item_id}'}), HTTPStatus.NOT_FOUND
 
-        data = request.get_json() or {}
-        brand = data.get('brand', item.brand)
-        quantity = float(data.get('quantity', item.quantity))
-
-        if quantity <= 0:
-            return jsonify({'error': 'Quantity must be greater than zero'}), HTTPStatus.BAD_REQUEST
-
-        if data.get('unit_price') is not None:
-            unit_price = float(data['unit_price'])
-        elif data.get('total_price') is not None:
-            unit_price = float(data['total_price']) / quantity
-        else:
-            unit_price = float(item.unit_price)
-
-        if unit_price <= 0:
-            return jsonify({'error': 'Unit price must be greater than zero'}), HTTPStatus.BAD_REQUEST
+        brand, quantity, unit_price = normalize_purchase_item_update_payload(
+            request.get_json() or {},
+            item
+        )
 
         ok, msg = db.update_purchased_item(item_id, brand, quantity, unit_price)
         if not ok:
@@ -298,8 +238,8 @@ def update_purchase_item(item_id):
                 'total_price': quantity * unit_price
             }
         ), HTTPStatus.OK
-    except ValueError:
-        return jsonify({'error': 'Invalid payload for numeric fields'}), HTTPStatus.BAD_REQUEST
+    except (ValueError, RequestPayloadError) as e:
+        return jsonify({'error': str(e)}), HTTPStatus.BAD_REQUEST
     except SQLAlchemyError as e:
         return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
     finally:
