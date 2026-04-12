@@ -1,4 +1,4 @@
-.PHONY: help build up down restart logs ps app-logs db-logs shell-app shell-db clean
+.PHONY: help build up down restart logs ps app-logs db-logs shell-app shell-db reset-db clean
 
 COMPOSE := docker compose
 
@@ -14,13 +14,14 @@ help:
 	@printf "  make db-logs    Follow database logs\n"
 	@printf "  make shell-app  Open a shell in the app container\n"
 	@printf "  make shell-db   Open a shell in the database container\n"
+	@printf "  make reset-db   Drop and recreate all database tables\n"
 	@printf "  make clean      Stop containers and remove volumes\n"
 
 build:
 	$(COMPOSE) build
 
 up:
-	$(COMPOSE) up --build -d
+	$(COMPOSE) up --build
 
 down:
 	$(COMPOSE) down
@@ -46,6 +47,9 @@ shell-app:
 
 shell-db:
 	$(COMPOSE) exec db sh
+
+reset-db:
+	$(COMPOSE) exec app poetry run flask --app app:create_app reset-db
 
 clean:
 	$(COMPOSE) down -v

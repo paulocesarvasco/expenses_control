@@ -77,6 +77,7 @@ Or use the local convenience targets:
 
 ```bash
 make up
+make reset-db
 make logs
 make down
 ```
@@ -114,6 +115,7 @@ poetry run flask --app app:create_app list-products
 poetry run flask --app app:create_app list-items
 poetry run flask --app app:create_app register-product
 poetry run flask --app app:create_app edit-shopping
+poetry run flask --app app:create_app reset-db
 ```
 
 To list all available routes:
