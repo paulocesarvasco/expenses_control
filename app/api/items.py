@@ -20,8 +20,13 @@ def list_items():
                 PurchasedItem.total_price,
                 ProductCategory.category_name
             )
-            .where(
-                PurchasedItem.product_id == Product.product_id,
+            .select_from(PurchasedItem)
+            .join(
+                Product,
+                PurchasedItem.product_id == Product.product_id
+            )
+            .join(
+                ProductCategory,
                 Product.category_id == ProductCategory.category_id
             )
             .order_by(Product.product_name)

@@ -163,20 +163,17 @@ def select_shopping_trips(start_date, end_date):
                 PurchasedItem.unit_price,
                 PurchasedItem.quantity
             )
-            .select_from(
+            .select_from(ShoppingTrip)
+            .join(
                 PurchasedItem,
-                ShoppingTrip,
-                PurchasedItem
+                ShoppingTrip.trip_id == PurchasedItem.trip_id
+            )
+            .join(
+                Product,
+                Product.product_id == PurchasedItem.product_id
             )
             .where(
                 ShoppingTrip.purchase_date.between(start_date, end_date)
-
-            )
-            .where(
-                ShoppingTrip.trip_id == PurchasedItem.trip_id,
-            )
-            .where(
-                Product.product_id == PurchasedItem.product_id
             )
             .order_by(
                 ShoppingTrip.purchase_date.desc()
@@ -206,8 +203,13 @@ def select_shoppings_by_category():
                 PurchasedItem.total_price,
                 ProductCategory.category_name
             )
-            .where(
-                PurchasedItem.product_id == Product.product_id,
+            .select_from(PurchasedItem)
+            .join(
+                Product,
+                PurchasedItem.product_id == Product.product_id
+            )
+            .join(
+                ProductCategory,
                 Product.category_id == ProductCategory.category_id
             )
             .order_by(
