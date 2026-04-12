@@ -2,14 +2,19 @@ import os
 import sys
 from logging.config import dictConfig
 from logging import Formatter
-from flask import request
+from flask import has_request_context, request
 
 class RequestFormatter(Formatter):
     """Custom formatter that adds HTTP request details"""
     def format(self, record):
-        record.url = request.url if request else 'no-request'
-        record.method = request.method if request else 'no-method'
-        record.remote_addr = request.remote_addr if request else 'no-ip'
+        if has_request_context():
+            record.url = request.url
+            record.method = request.method
+            record.remote_addr = request.remote_addr
+        else:
+            record.url = 'no-request'
+            record.method = 'no-method'
+            record.remote_addr = 'no-ip'
         return super().format(record)
 
 os.makedirs('logs', exist_ok=True)

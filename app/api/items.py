@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify
+import logging
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -9,6 +10,7 @@ from app.services.database import Session
 from app.utils.models import Product, ProductCategory, PurchasedItem
 
 items_bp = Blueprint('items', __name__, url_prefix='/item')
+logger = logging.getLogger('views')
 
 
 @items_bp.route('/list')
@@ -43,6 +45,7 @@ def list_items():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
+        logger.exception('list_items database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()

@@ -17,7 +17,11 @@ def list_products():
     try:
         product_list = db.select_all_products()
         return jsonify(product_list), HTTPStatus.OK
-    except Exception as e:
+    except SQLAlchemyError as e:
+        logger.exception('list_products database error')
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
+    except RuntimeError as e:
+        logger.exception('list_products runtime error')
         return error_response(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
@@ -50,6 +54,7 @@ def list_products_detailed():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
+        logger.exception('list_products_detailed database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
@@ -89,9 +94,11 @@ def register_product():
 
     except IntegrityError:
         session.rollback()
+        logger.info('register_product integrity error: product already exists')
         return error_response('Product already exists', HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
         session.rollback()
+        logger.exception('register_product database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()

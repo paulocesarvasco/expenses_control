@@ -43,13 +43,12 @@ def save_purchase():
 
     except (ProductError, RequestPayloadError, TypeError, ValueError) as e:
         s.rollback()
+        logger.info('save_purchase validation error: %s', e)
         return error_response(str(e), HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
         s.rollback()
+        logger.exception('save_purchase database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
-    except Exception as e:
-        s.rollback()
-        return error_response(f'Unexpected error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         s.close()
 
@@ -70,30 +69,24 @@ def search_purchases():
         trips = db.select_shopping_trips(start_date, end_date)
         committed_trips = dict()
         for trip in trips:
-            try:
-                trip_id, store_name, purchase_date, total_amount, product_name, brand, unit_price, quantity = trip
-                res = SearchResponsePayload()
-                if trip_id not in committed_trips.keys():
-                    res.store_name = store_name
-                    res.purchase_date = datetime.strptime(
-                        date_to_iso(purchase_date), '%Y-%m-%d'
-                    ).strftime('%d-%m-%Y')
-                    res.total = total_amount
-                    committed_trips[trip_id] = res
-                else:
-                    res = committed_trips[trip_id]
+            trip_id, store_name, purchase_date, total_amount, product_name, brand, unit_price, quantity = trip
+            res = SearchResponsePayload()
+            if trip_id not in committed_trips.keys():
+                res.store_name = store_name
+                res.purchase_date = datetime.strptime(
+                    date_to_iso(purchase_date), '%Y-%m-%d'
+                ).strftime('%d-%m-%Y')
+                res.total = total_amount
+                committed_trips[trip_id] = res
+            else:
+                res = committed_trips[trip_id]
 
-                purchase = dict()
-                purchase['brand'] = brand
-                purchase['item'] = product_name
-                purchase['price'] = unit_price
-                purchase['quantity'] = quantity
-                res.purchases.append(purchase)
-
-            except Exception as e:
-                logger.error('failed to generate response payload')
-                raise e
-
+            purchase = dict()
+            purchase['brand'] = brand
+            purchase['item'] = product_name
+            purchase['price'] = unit_price
+            purchase['quantity'] = quantity
+            res.purchases.append(purchase)
 
         list_results = []
         for _, data in committed_trips.items():
@@ -103,9 +96,12 @@ def search_purchases():
         if response_format == 'json':
             return jsonify(list_results), HTTPStatus.OK
         return render_template('search.html', data=list_results, active_page='search')
-
-    except Exception as e:
-        return error_response(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
+    except ValueError as e:
+        logger.info('search_purchases invalid input: %s', e)
+        return error_response(str(e), HTTPStatus.BAD_REQUEST)
+    except SQLAlchemyError as e:
+        logger.exception('search_purchases database error')
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 @purchases_bp.route('/list')
@@ -135,6 +131,7 @@ def list_purchases():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
+        logger.exception('list_purchases database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
@@ -175,7 +172,8 @@ def list_purchase_items(trip_id):
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        logger.exception('list_purchase_items database error')
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
 
@@ -207,8 +205,10 @@ def update_purchase(trip_id):
             }
         ), HTTPStatus.OK
     except (ValueError, RequestPayloadError) as e:
+        logger.info('update_purchase validation error: %s', e)
         return error_response(str(e), HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
+        logger.exception('update_purchase database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
@@ -242,8 +242,10 @@ def update_purchase_item(item_id):
             }
         ), HTTPStatus.OK
     except (ValueError, RequestPayloadError) as e:
+        logger.info('update_purchase_item validation error: %s', e)
         return error_response(str(e), HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
+        logger.exception('update_purchase_item database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()

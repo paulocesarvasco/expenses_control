@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
+import logging
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -9,6 +10,7 @@ from app.services.database import Session
 from app.utils.models import ProductCategory
 
 categories_bp = Blueprint('categories', __name__, url_prefix='/category')
+logger = logging.getLogger('views')
 
 
 @categories_bp.route('/list')
@@ -29,6 +31,7 @@ def list_categories():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
+        logger.exception('list_categories database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
@@ -56,9 +59,11 @@ def register_category():
 
     except IntegrityError:
         session.rollback()
+        logger.info('register_category integrity error: category already exists')
         return error_response('Category already exists', HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
         session.rollback()
+        logger.exception('register_category database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
