@@ -73,6 +73,14 @@ Start the full stack:
 docker compose up --build
 ```
 
+Or use the local convenience targets:
+
+```bash
+make up
+make logs
+make down
+```
+
 The app container starts with Gunicorn (WSGI) in production mode.
 
 App URL:
