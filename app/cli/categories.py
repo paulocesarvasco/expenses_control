@@ -1,48 +1,60 @@
-import click
 import logging
 
-from app.services.database import db
-from sqlalchemy import select
-from app.utils.models import ProductCategory
+import click
 from prettytable import PrettyTable
+
+from app.services.database import db
+from app.utils.models import ProductCategory
+
+
+def _prompt_category_name() -> str:
+    category_name = click.prompt('Category name', type=str).strip()
+    if not category_name:
+        raise click.ClickException('Category name cannot be empty')
+    return category_name
+
+
+def _register_category() -> None:
+    session = db.get_db_session()
+    try:
+        while True:
+            click.echo('Choose an option:')
+            click.echo('\t1. Add new category')
+            click.echo('\t2. Save and quit')
+            option = click.prompt('Option', type=int)
+
+            if option == 2:
+                session.commit()
+                click.echo('Categories saved')
+                return
+            if option != 1:
+                click.echo('Invalid option')
+                continue
+
+            category = ProductCategory(category_name=_prompt_category_name())
+            session.add(category)
+    except Exception as exc:
+        session.rollback()
+        logging.error(exc)
+        raise
+    finally:
+        session.close()
+
+
+@click.command('register-category')
+def register_category():
+    _register_category()
 
 
 @click.command('insert-category')
-def register_category():
-    s = db.get_db_session()
-    must_commit = False
-    while True:
-        try:
-            print('Chose an option:')
-            print('\t1. Add new product category')
-            print('\t2. Save and quit')
-            option = int(input('\tOption: '))
-            if option == 2:
-                if must_commit:
-                    s.commit()
-                break
-            elif option != 1:
-                print('invalid option')
-                continue
-
-            name = input('Insert category name: ')
-            category = ProductCategory(
-                category_name=name
-            )
-            s.add(category)
-            must_commit = True
-        except Exception as e:
-            logging.error(e)
-    s.close()
+def register_category_legacy():
+    _register_category()
 
 
 @click.command('list-categories')
 def list_categories():
-    with db.get_db_engine().connect() as conn:
-        stmt = (select(ProductCategory.category_name.label('categoria')))
-        res = conn.execute(stmt).all()
-        cats = [cat for r in res for cat in r]
+    categories = db.select_all_categories()
 
-        table = PrettyTable()
-        table.add_column('Categorias', column=cats)
-        click.echo(table)
+    table = PrettyTable()
+    table.add_column('Category', list(categories.keys()))
+    click.echo(table)

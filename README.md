@@ -101,6 +101,7 @@ docker compose down
 
 ```bash
 poetry run flask --app app:create_app list-categories
+poetry run flask --app app:create_app register-category
 poetry run flask --app app:create_app list-products
 poetry run flask --app app:create_app list-items
 poetry run flask --app app:create_app register-product

@@ -16,4 +16,4 @@ def list_purchased_items():
     table.add_column('Price', column=price_products)
     table.add_column('Category', column=category_products)
 
-    print(table)
+    click.echo(table)

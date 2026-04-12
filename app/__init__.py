@@ -30,6 +30,7 @@ def create_app():
     app.register_blueprint(expenses_bp)
 
     from app.cli import categories, database, items, products, purchases
+    app.cli.add_command(categories.register_category)
     app.cli.add_command(categories.list_categories)
     app.cli.add_command(database.create_tables)
     app.cli.add_command(items.list_purchased_items)

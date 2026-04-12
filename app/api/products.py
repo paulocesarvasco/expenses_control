@@ -1,12 +1,11 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request
 import logging
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.responses import error_response
 from app.services.database import Session, db
-from app.utils.models import Product, ProductCategory
+from app.utils.models import Product
 
 logger = logging.getLogger('views')
 
@@ -27,37 +26,20 @@ def list_products():
 
 @products_bp.route('/list-detailed')
 def list_products_detailed():
-    session = Session()
     try:
-        stmt = (
-            select(
-                Product.product_id,
-                Product.product_name,
-                ProductCategory.category_id,
-                ProductCategory.category_name
-            )
-            .join(
-                ProductCategory,
-                Product.category_id == ProductCategory.category_id
-            )
-            .order_by(Product.product_name)
-        )
-        rows = session.execute(stmt).all()
         payload = [
             {
-                'product_id': row.product_id,
-                'product_name': row.product_name,
-                'category_id': row.category_id,
-                'category_name': row.category_name
+                'product_id': row['product_id'],
+                'product_name': row['product_name'],
+                'category_id': row['category_id'],
+                'category_name': row['category_name']
             }
-            for row in rows
+            for row in db.select_product_catalog()
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
         logger.exception('list_products_detailed database error')
         return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
-    finally:
-        session.close()
 
 
 @products_bp.route('/register', methods=['POST'])

@@ -110,6 +110,24 @@ def select_all_products():
         return conn.scalars(stmt).all()
 
 
+def select_product_catalog():
+    with get_db_engine().connect() as conn:
+        stmt = (
+            select(
+                Product.product_id,
+                Product.product_name,
+                ProductCategory.category_id,
+                ProductCategory.category_name
+            )
+            .join(
+                ProductCategory,
+                Product.category_id == ProductCategory.category_id
+            )
+            .order_by(Product.product_name)
+        )
+        return [row._mapping for row in conn.execute(stmt).all()]
+
+
 def select_all_shopping_trips():
     with get_db_engine().connect() as conn:
         stmt = (
