@@ -37,6 +37,12 @@ EOF
 poetry run flask --app app:create_app init-db
 ```
 
+If you are upgrading from an older schema where `shopping_trips.purchase_date` was stored as text, run:
+
+```bash
+poetry run python scripts/migrate_purchase_date.py
+```
+
 ## 4. Run the app locally
 
 ```bash

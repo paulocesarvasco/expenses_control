@@ -1,7 +1,7 @@
 from app.services.database import Session, db
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
 from app.utils.models import Product, PurchasedItem, ShoppingTrip
-from datetime import datetime
+from datetime import date, datetime
 from flask import Blueprint, render_template, request, jsonify
 from http import HTTPStatus
 from sqlalchemy import select
@@ -13,6 +13,19 @@ import logging
 logger = logging.getLogger('views')
 
 purchases_bp = Blueprint('purchases', __name__, url_prefix='/purchase')
+
+
+def _parse_iso_date(value: str) -> date:
+    return datetime.strptime(str(value), '%Y-%m-%d').date()
+
+
+def _date_to_iso(value) -> str:
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, str):
+        return _parse_iso_date(value).isoformat()
+    raise ValueError('Invalid date value')
+
 
 @purchases_bp.route('/register_form')
 def get_registry_form():
@@ -34,7 +47,7 @@ def save_purchase():
         store_name = str(data['store_name'])
         trip = ShoppingTrip(
             store_name=store_name.title(),
-            purchase_date=datetime.strptime(data['purchase_date'], '%Y-%m-%d').date(),
+            purchase_date=_parse_iso_date(data['purchase_date']),
             payment_method=data.get('payment_method'),
             notes=data.get('notes')
         )
@@ -92,6 +105,9 @@ def search_purchases():
         if end_date is None:
             end_date = (datetime.now()).strftime('%Y-%m-%d')
 
+        start_date = _parse_iso_date(start_date)
+        end_date = _parse_iso_date(end_date)
+
         trips = db.select_shopping_trips(start_date, end_date)
         committed_trips = dict()
         for trip in trips:
@@ -100,7 +116,9 @@ def search_purchases():
                 res = SearchResponsePayload()
                 if trip_id not in committed_trips.keys():
                     res.store_name = store_name
-                    res.purchase_date = datetime.strptime(purchase_date, '%Y-%m-%d').strftime('%d-%m-%Y')
+                    res.purchase_date = datetime.strptime(
+                        _date_to_iso(purchase_date), '%Y-%m-%d'
+                    ).strftime('%d-%m-%Y')
                     res.total = total_amount
                     committed_trips[trip_id] = res
                 else:
@@ -149,7 +167,7 @@ def list_purchases():
             {
                 'trip_id': row.trip_id,
                 'store_name': row.store_name,
-                'purchase_date': row.purchase_date,
+                'purchase_date': _date_to_iso(row.purchase_date),
                 'payment_method': row.payment_method,
                 'total_amount': float(row.total_amount) if row.total_amount is not None else 0.0
             }
@@ -216,7 +234,9 @@ def update_purchase(trip_id):
         payment_method = data.get('payment_method', trip.payment_method)
 
         if data.get('purchase_date') is not None:
-            datetime.strptime(str(data['purchase_date']), '%Y-%m-%d')
+            purchase_date = _parse_iso_date(data['purchase_date'])
+        else:
+            purchase_date = _parse_iso_date(purchase_date) if isinstance(purchase_date, str) else purchase_date
 
         ok, msg = db.update_shopping_trip(trip_id, payment_method, purchase_date, store_name)
         if not ok:
@@ -227,7 +247,7 @@ def update_purchase(trip_id):
                 'message': msg,
                 'trip_id': trip_id,
                 'store_name': store_name,
-                'purchase_date': purchase_date,
+                'purchase_date': _date_to_iso(purchase_date),
                 'payment_method': payment_method
             }
         ), HTTPStatus.OK

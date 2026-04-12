@@ -1,4 +1,5 @@
 import os
+from datetime import date, datetime
 
 from flask import g, has_request_context
 from sqlalchemy import create_engine, select, update
@@ -38,6 +39,14 @@ def _get_session_factory():
 def _create_new_session():
     session_factory = _get_session_factory()
     return session_factory()
+
+
+def _coerce_date(value):
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    raise ValueError('Invalid date value. Use YYYY-MM-DD')
 
 
 def get_db_engine():
@@ -140,6 +149,8 @@ def select_shopping_trip_by_id(trip_id):
     return [r._mapping for r in res]
 
 def select_shopping_trips(start_date, end_date):
+    start_date = _coerce_date(start_date)
+    end_date = _coerce_date(end_date)
     with get_db_engine().connect() as conn:
         stmt = (
             select(
@@ -249,6 +260,7 @@ def select_purchased_items(trip_id:int):
 
 
 def update_shopping_trip(trip_id, payment_method, purchase_date, store_name):
+    purchase_date = _coerce_date(purchase_date)
     s = _create_new_session()
     try:
         with s.begin():
