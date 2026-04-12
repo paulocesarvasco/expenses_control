@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.api.responses import error_response
 from app.services.database import Session
 from app.utils.models import ProductCategory
 
@@ -28,7 +29,7 @@ def list_categories():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
 
@@ -40,7 +41,7 @@ def register_category():
         data = request.get_json() or {}
         category_name = str(data.get('category_name', '')).strip()
         if not category_name:
-            return jsonify({'error': 'Field "category_name" is required'}), HTTPStatus.BAD_REQUEST
+            return error_response('Field "category_name" is required', HTTPStatus.BAD_REQUEST)
 
         category = ProductCategory(category_name=category_name)
         session.add(category)
@@ -55,9 +56,9 @@ def register_category():
 
     except IntegrityError:
         session.rollback()
-        return jsonify({'error': 'Category already exists'}), HTTPStatus.BAD_REQUEST
+        return error_response('Category already exists', HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
         session.rollback()
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()

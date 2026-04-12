@@ -6,6 +6,7 @@ from app.services.purchase_service import (
     normalize_purchase_update_payload,
     parse_iso_date,
 )
+from app.api.responses import error_response
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
 from app.utils.models import Product, PurchasedItem, ShoppingTrip
 from datetime import datetime
@@ -42,13 +43,13 @@ def save_purchase():
 
     except (ProductError, RequestPayloadError, TypeError, ValueError) as e:
         s.rollback()
-        return jsonify({'error': str(e)}), HTTPStatus.BAD_REQUEST
+        return error_response(str(e), HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
         s.rollback()
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     except Exception as e:
         s.rollback()
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Unexpected error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         s.close()
 
@@ -56,6 +57,7 @@ def save_purchase():
 @purchases_bp.route('/search')
 def search_purchases():
     try:
+        response_format = request.args.get('format', type=str, default='html').lower()
         start_date = request.args.get('start', type=str, default='2000-01-01')
         end_date = request.args.get('end', type=str)
 
@@ -98,11 +100,12 @@ def search_purchases():
             list_results.append(data.to_dict())
 
 
-        # return jsonify(list_results), HTTPStatus.OK
+        if response_format == 'json':
+            return jsonify(list_results), HTTPStatus.OK
         return render_template('search.html', data=list_results, active_page='search')
 
     except Exception as e:
-        return jsonify({'error': str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 @purchases_bp.route('/list')
@@ -132,7 +135,7 @@ def list_purchases():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
 
@@ -183,7 +186,7 @@ def update_purchase(trip_id):
     try:
         trip = session.get(ShoppingTrip, trip_id)
         if trip is None:
-            return jsonify({'error': f'No shopping trip found with ID {trip_id}'}), HTTPStatus.NOT_FOUND
+            return error_response(f'No shopping trip found with ID {trip_id}', HTTPStatus.NOT_FOUND)
 
         store_name, purchase_date, payment_method = normalize_purchase_update_payload(
             request.get_json() or {},
@@ -192,7 +195,7 @@ def update_purchase(trip_id):
 
         ok, msg = db.update_shopping_trip(trip_id, payment_method, purchase_date, store_name)
         if not ok:
-            return jsonify({'error': msg}), HTTPStatus.BAD_REQUEST
+            return error_response(msg, HTTPStatus.BAD_REQUEST)
 
         return jsonify(
             {
@@ -204,9 +207,9 @@ def update_purchase(trip_id):
             }
         ), HTTPStatus.OK
     except (ValueError, RequestPayloadError) as e:
-        return jsonify({'error': str(e)}), HTTPStatus.BAD_REQUEST
+        return error_response(str(e), HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
 
@@ -217,7 +220,7 @@ def update_purchase_item(item_id):
     try:
         item = session.get(PurchasedItem, item_id)
         if item is None:
-            return jsonify({'error': f'No purchased item found with ID {item_id}'}), HTTPStatus.NOT_FOUND
+            return error_response(f'No purchased item found with ID {item_id}', HTTPStatus.NOT_FOUND)
 
         brand, quantity, unit_price = normalize_purchase_item_update_payload(
             request.get_json() or {},
@@ -226,7 +229,7 @@ def update_purchase_item(item_id):
 
         ok, msg = db.update_purchased_item(item_id, brand, quantity, unit_price)
         if not ok:
-            return jsonify({'error': msg}), HTTPStatus.BAD_REQUEST
+            return error_response(msg, HTTPStatus.BAD_REQUEST)
 
         return jsonify(
             {
@@ -239,8 +242,8 @@ def update_purchase_item(item_id):
             }
         ), HTTPStatus.OK
     except (ValueError, RequestPayloadError) as e:
-        return jsonify({'error': str(e)}), HTTPStatus.BAD_REQUEST
+        return error_response(str(e), HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()

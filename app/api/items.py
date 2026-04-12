@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.responses import error_response
 from app.services.database import Session
 from app.utils.models import Product, ProductCategory, PurchasedItem
 
@@ -42,6 +43,6 @@ def list_items():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()

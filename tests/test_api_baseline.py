@@ -108,6 +108,18 @@ class ApiBaselineTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Mercado Central", response.data)
 
+    def test_search_purchases_returns_json_with_format_selector(self):
+        self._register_purchase()
+        response = self.client.get(
+            "/v1/purchase/search?start=2026-04-01&end=2026-04-30&format=json"
+        )
+        payload = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(payload, list)
+        self.assertGreaterEqual(len(payload), 1)
+        self.assertEqual(payload[0]["store_name"], "Mercado Central")
+
     def test_update_purchase(self):
         create_response = self._register_purchase()
         trip_id = create_response.get_json()["trip_id"]

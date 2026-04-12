@@ -4,6 +4,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.api.responses import error_response
 from app.services.database import Session, db
 from app.utils.models import Product, ProductCategory
 
@@ -17,7 +18,7 @@ def list_products():
         product_list = db.select_all_products()
         return jsonify(product_list), HTTPStatus.OK
     except Exception as e:
-        return jsonify({'error': str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 @products_bp.route('/list-detailed')
@@ -49,7 +50,7 @@ def list_products_detailed():
         ]
         return jsonify(payload), HTTPStatus.OK
     except SQLAlchemyError as e:
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
 
@@ -61,18 +62,18 @@ def register_product():
         data = request.get_json() or {}
         product_name = str(data.get('product_name', '')).strip()
         if not product_name:
-            return jsonify({'error': 'Field "product_name" is required'}), HTTPStatus.BAD_REQUEST
+            return error_response('Field "product_name" is required', HTTPStatus.BAD_REQUEST)
 
         category_id = data.get('category_id')
         category_name = data.get('category_name')
         if category_id is None and category_name is None:
-            return jsonify({'error': 'Provide "category_id" or "category_name"'}), HTTPStatus.BAD_REQUEST
+            return error_response('Provide "category_id" or "category_name"', HTTPStatus.BAD_REQUEST)
 
         if category_id is None:
             categories = db.select_all_categories()
             category_id = categories.get(str(category_name))
             if category_id is None:
-                return jsonify({'error': 'Category not found'}), HTTPStatus.BAD_REQUEST
+                return error_response('Category not found', HTTPStatus.BAD_REQUEST)
 
         product = Product(product_name=product_name, category_id=category_id)
         session.add(product)
@@ -88,10 +89,10 @@ def register_product():
 
     except IntegrityError:
         session.rollback()
-        return jsonify({'error': 'Product already exists'}), HTTPStatus.BAD_REQUEST
+        return error_response('Product already exists', HTTPStatus.BAD_REQUEST)
     except SQLAlchemyError as e:
         session.rollback()
-        return jsonify({'error': f'Database error: {str(e)}'}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return error_response(f'Database error: {str(e)}', HTTPStatus.INTERNAL_SERVER_ERROR)
     finally:
         session.close()
 
@@ -101,7 +102,7 @@ def register_products_batch():
     payload = request.get_json() or {}
     products = payload.get('products')
     if not isinstance(products, list) or len(products) == 0:
-        return jsonify({'error': 'Field "products" must be a non-empty array'}), HTTPStatus.BAD_REQUEST
+        return error_response('Field "products" must be a non-empty array', HTTPStatus.BAD_REQUEST)
 
     categories = db.select_all_categories()
     created = []
