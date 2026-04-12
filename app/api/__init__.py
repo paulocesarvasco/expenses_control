@@ -1,15 +1,29 @@
-from flask import Blueprint, render_template
+import logging
+
+from flask import Blueprint, render_template, request
 from .categories import categories_bp
 from .items import items_bp
 from .products import products_bp
 from .purchase import purchases_bp
 
+logger = logging.getLogger('views')
 
 expenses_bp = Blueprint('expenses', __name__, url_prefix='/v1')
 expenses_bp.register_blueprint(categories_bp)
 expenses_bp.register_blueprint(items_bp)
 expenses_bp.register_blueprint(products_bp)
 expenses_bp.register_blueprint(purchases_bp)
+
+
+@expenses_bp.after_request
+def log_ui_request(response):
+    logger.info(
+        'request handled endpoint=%s status=%s query=%s',
+        request.endpoint,
+        response.status_code,
+        request.query_string.decode('utf-8') or '-'
+    )
+    return response
 
 
 @expenses_bp.route('/')
