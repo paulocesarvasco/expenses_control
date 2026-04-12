@@ -13,7 +13,7 @@ def _register_signal_handlers(app):
         logging.info('received %s, shutting down gracefully', signal_name)
         try:
             with app.app_context():
-                db.close_db()
+                db.shutdown_db()
         finally:
             raise SystemExit(0)
 

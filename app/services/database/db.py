@@ -1,28 +1,77 @@
 import os
 
-from flask import g
+from flask import g, has_request_context
 from sqlalchemy import create_engine, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from app.utils.models import Product, ProductCategory, PurchasedItem, ShoppingTrip
 
+_ENGINE = None
+_SESSION_FACTORY = None
+_ENGINE_DB_URL = None
+
+
+def _get_db_url():
+    db_url = os.getenv('DB_URL', '')
+    if not db_url:
+        raise RuntimeError('DB_URL environment variable is required')
+    return db_url
+
+
+def _get_session_factory():
+    global _ENGINE
+    global _SESSION_FACTORY
+    global _ENGINE_DB_URL
+
+    db_url = _get_db_url()
+    if _ENGINE is None or _SESSION_FACTORY is None or _ENGINE_DB_URL != db_url:
+        if _ENGINE is not None:
+            _ENGINE.dispose()
+        _ENGINE = create_engine(db_url, echo=False)
+        _SESSION_FACTORY = sessionmaker(bind=_ENGINE)
+        _ENGINE_DB_URL = db_url
+
+    return _SESSION_FACTORY
+
+
+def _create_new_session():
+    session_factory = _get_session_factory()
+    return session_factory()
+
+
 def get_db_engine():
-    if 'db' not in g:
-        g.db = create_engine(os.getenv('DB_URL', ''), echo=False)
-    return g.db
+    _get_session_factory()
+    return _ENGINE
 
 
 def close_db(_exception=None):
-    engine = g.pop('db', None)
-    if engine is not None:
-        engine.dispose()
+    session = g.pop('db_session', None)
+    if session is not None:
+        session.close()
+
+
+def shutdown_db():
+    global _ENGINE
+    global _SESSION_FACTORY
+    global _ENGINE_DB_URL
+
+    if has_request_context():
+        close_db()
+
+    if _ENGINE is not None:
+        _ENGINE.dispose()
+        _ENGINE = None
+        _SESSION_FACTORY = None
+        _ENGINE_DB_URL = None
 
 
 def get_db_session():
-    engine = create_engine(os.getenv('DB_URL', ''), echo=False)
-    Session = sessionmaker(bind=engine)
-    return Session()
+    if has_request_context():
+        if 'db_session' not in g:
+            g.db_session = _create_new_session()
+        return g.db_session
+    return _create_new_session()
 
 
 def select_all_categories():
@@ -200,7 +249,7 @@ def select_purchased_items(trip_id:int):
 
 
 def update_shopping_trip(trip_id, payment_method, purchase_date, store_name):
-    s = get_db_session()
+    s = _create_new_session()
     try:
         with s.begin():
             stmt = (
@@ -227,6 +276,8 @@ def update_shopping_trip(trip_id, payment_method, purchase_date, store_name):
     except SQLAlchemyError as e:
         s.rollback()
         return False, f"Error updating shopping trip: {str(e)}"
+    finally:
+        s.close()
 
 
 # def update_payment_method(trip_id: int, new_payment_method: str):
@@ -251,7 +302,7 @@ def update_shopping_trip(trip_id, payment_method, purchase_date, store_name):
 #         return False, f"Error updating payment_method: {str(e)}"
 
 def update_purchased_item(item_id, brand, quantity, unit_price):
-    s = get_db_session()
+    s = _create_new_session()
     try:
         with s.begin():
             stmt = (
@@ -274,3 +325,5 @@ def update_purchased_item(item_id, brand, quantity, unit_price):
     except SQLAlchemyError as e:
         s.rollback()
         return False, f"Error updating item: {str(e)}"
+    finally:
+        s.close()
