@@ -33,10 +33,17 @@ def create_purchase_from_payload(session, data):
     if not isinstance(items, list) or len(items) == 0:
         raise RequestPayloadError('Field "items" must be a non-empty list')
 
+    payment_method_name = str(data.get('payment_method', '')).strip()
+    if not payment_method_name:
+        raise RequestPayloadError('Field "payment_method" is required')
+    payment_method_id = db.select_payment_method_id(payment_method_name)
+    if payment_method_id is None:
+        raise RequestPayloadError('Payment method not found')
+
     trip = ShoppingTrip(
         store_name=store_name.title(),
         purchase_date=parse_iso_date(data['purchase_date']),
-        payment_method=data.get('payment_method'),
+        payment_method_id=payment_method_id,
         notes=data.get('notes')
     )
 
@@ -80,7 +87,10 @@ def create_purchase_from_payload(session, data):
 def normalize_purchase_update_payload(data, trip):
     payload = data or {}
     store_name = payload.get('store_name', trip.store_name)
-    payment_method = payload.get('payment_method', trip.payment_method)
+    payment_method_name = payload.get(
+        'payment_method',
+        trip.payment_method.payment_method_name if trip.payment_method is not None else None
+    )
     purchase_date = payload.get('purchase_date', trip.purchase_date)
 
     if isinstance(purchase_date, str):
@@ -88,7 +98,13 @@ def normalize_purchase_update_payload(data, trip):
     elif not isinstance(purchase_date, date):
         raise RequestPayloadError('Invalid date format. Use YYYY-MM-DD')
 
-    return store_name, purchase_date, payment_method
+    payment_method_id = None
+    if payment_method_name is not None:
+        payment_method_id = db.select_payment_method_id(str(payment_method_name).strip())
+        if payment_method_id is None:
+            raise RequestPayloadError('Payment method not found')
+
+    return store_name, purchase_date, payment_method_id, payment_method_name
 
 
 def normalize_purchase_item_update_payload(data, item):

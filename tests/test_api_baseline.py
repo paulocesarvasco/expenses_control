@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 
 from app import create_app
 from app.models import Base
+from app.services.database import db
 
 
 class ApiBaselineTestCase(unittest.TestCase):
@@ -20,6 +21,7 @@ class ApiBaselineTestCase(unittest.TestCase):
         engine = create_engine(self.db_url, echo=False)
         Base.metadata.create_all(engine)
         engine.dispose()
+        db.seed_payment_methods()
 
         self.app = create_app()
         self.client = self.app.test_client()

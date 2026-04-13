@@ -7,7 +7,15 @@ from sqlalchemy import create_engine, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, joinedload
 
-from app.models import Product, ProductCategory, PurchasedItem, ShoppingTrip
+from app.models import PaymentMethod, Product, ProductCategory, PurchasedItem, ShoppingTrip
+
+DEFAULT_PAYMENT_METHODS = [
+    'Cartão de Crédito',
+    'Cartão de Débito',
+    'Dinheiro',
+    'PIX',
+    'Vale',
+]
 
 _ENGINE = None
 _SESSION_FACTORY = None
@@ -91,6 +99,28 @@ def get_db_session():
     return _create_new_session()
 
 
+def seed_payment_methods(session=None):
+    owns_session = session is None
+    session = session or _create_new_session()
+    try:
+        existing = {
+            row[0]
+            for row in session.execute(
+                select(PaymentMethod.payment_method_name)
+            ).all()
+        }
+        for method_name in DEFAULT_PAYMENT_METHODS:
+            if method_name not in existing:
+                session.add(PaymentMethod(payment_method_name=method_name))
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        if owns_session:
+            session.close()
+
+
 def select_all_categories():
     with get_db_engine().connect() as conn:
         stmt = (
@@ -103,6 +133,18 @@ def select_all_categories():
             )
         )
         return {str(row[0]):int(row[1]) for row in conn.execute(stmt).all()}
+
+
+def select_all_payment_methods():
+    with get_db_engine().connect() as conn:
+        stmt = (
+            select(
+                PaymentMethod.payment_method_id,
+                PaymentMethod.payment_method_name
+            )
+            .order_by(PaymentMethod.payment_method_name)
+        )
+        return [row._mapping for row in conn.execute(stmt).all()]
 
 
 def select_all_products():
@@ -140,8 +182,19 @@ def select_all_shopping_trips():
     with get_db_engine().connect() as conn:
         stmt = (
             select(
-                ShoppingTrip
-                )
+                ShoppingTrip.trip_id,
+                ShoppingTrip.store_name,
+                ShoppingTrip.purchase_date,
+                ShoppingTrip.total_amount,
+                PaymentMethod.payment_method_name.label('payment_method'),
+                ShoppingTrip.notes
+            )
+            .select_from(ShoppingTrip)
+            .join(
+                PaymentMethod,
+                ShoppingTrip.payment_method_id == PaymentMethod.payment_method_id,
+                isouter=True
+            )
             .order_by(
                 ShoppingTrip.purchase_date.desc()
             )
@@ -221,6 +274,19 @@ def select_product_id(product:str):
         return conn.scalars(stmt).first()
 
 
+def select_payment_method_id(payment_method_name: str):
+    with get_db_engine().connect() as conn:
+        stmt = (
+            select(
+                PaymentMethod.payment_method_id
+            )
+            .where(
+                PaymentMethod.payment_method_name == payment_method_name
+            )
+        )
+        return conn.scalars(stmt).first()
+
+
 def select_shoppings_by_category():
     with get_db_engine().connect() as conn:
         stmt = (
@@ -287,7 +353,7 @@ def select_purchased_items(trip_id:int):
 #         return False, f"Error updating store name: {str(e)}"
 
 
-def update_shopping_trip(trip_id, payment_method, purchase_date, store_name):
+def update_shopping_trip(trip_id, payment_method_id, purchase_date, store_name):
     purchase_date = _coerce_date(purchase_date)
     s = _create_new_session()
     try:
@@ -300,7 +366,7 @@ def update_shopping_trip(trip_id, payment_method, purchase_date, store_name):
                     ShoppingTrip.trip_id == trip_id
                 )
                 .values(
-                    payment_method=payment_method,
+                    payment_method_id=payment_method_id,
                     purchase_date=purchase_date,
                     store_name=store_name
                 )

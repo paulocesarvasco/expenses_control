@@ -43,6 +43,12 @@ If you are upgrading from an older schema where `shopping_trips.purchase_date` w
 poetry run python scripts/migrate_purchase_date.py
 ```
 
+If you are upgrading from an older schema where `shopping_trips.payment_method` was stored directly on the trip row, run:
+
+```bash
+poetry run python scripts/migrate_payment_methods.py
+```
+
 ## 4. Run the app locally
 
 ```bash

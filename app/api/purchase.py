@@ -8,7 +8,7 @@ from app.services.purchase_service import (
 )
 from app.api.responses import error_response
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
-from app.models import Product, PurchasedItem, ShoppingTrip
+from app.models import PaymentMethod, Product, PurchasedItem, ShoppingTrip
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify
 from http import HTTPStatus
@@ -25,7 +25,12 @@ purchases_bp = Blueprint('purchases', __name__, url_prefix='/purchase')
 
 @purchases_bp.route('/register_form')
 def get_registry_form():
-    return render_template('register.html', active_page='register')
+    payment_methods = db.select_all_payment_methods()
+    return render_template(
+        'register.html',
+        active_page='register',
+        payment_methods=payment_methods
+    )
 
 
 @purchases_bp.route('/save', methods=['POST'])
@@ -113,8 +118,14 @@ def list_purchases():
                 ShoppingTrip.trip_id,
                 ShoppingTrip.store_name,
                 ShoppingTrip.purchase_date,
-                ShoppingTrip.payment_method,
+                PaymentMethod.payment_method_name.label('payment_method'),
                 ShoppingTrip.total_amount
+            )
+            .select_from(ShoppingTrip)
+            .join(
+                PaymentMethod,
+                ShoppingTrip.payment_method_id == PaymentMethod.payment_method_id,
+                isouter=True
             )
             .order_by(ShoppingTrip.purchase_date.desc())
         )
@@ -186,12 +197,12 @@ def update_purchase(trip_id):
         if trip is None:
             return error_response(f'No shopping trip found with ID {trip_id}', HTTPStatus.NOT_FOUND)
 
-        store_name, purchase_date, payment_method = normalize_purchase_update_payload(
+        store_name, purchase_date, payment_method_id, payment_method_name = normalize_purchase_update_payload(
             request.get_json() or {},
             trip
         )
 
-        ok, msg = db.update_shopping_trip(trip_id, payment_method, purchase_date, store_name)
+        ok, msg = db.update_shopping_trip(trip_id, payment_method_id, purchase_date, store_name)
         if not ok:
             return error_response(msg, HTTPStatus.BAD_REQUEST)
 
@@ -201,7 +212,7 @@ def update_purchase(trip_id):
                 'trip_id': trip_id,
                 'store_name': store_name,
                 'purchase_date': date_to_iso(purchase_date),
-                'payment_method': payment_method
+                'payment_method': payment_method_name
             }
         ), HTTPStatus.OK
     except (ValueError, RequestPayloadError) as e:

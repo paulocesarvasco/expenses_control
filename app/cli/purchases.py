@@ -26,19 +26,22 @@ def edit_shopping():
         if selected_field == 'Store name':
             store_name = click.prompt('New store name', type=str)
             purchase_date = shopping['purchase_date']
-            payment_method = shopping['payment_method']
-            ok, msg = db.update_shopping_trip(shopping['trip_id'], payment_method, purchase_date, store_name)
+            payment_method_id = db.select_payment_method_id(shopping['payment_method'])
+            ok, msg = db.update_shopping_trip(shopping['trip_id'], payment_method_id, purchase_date, store_name)
         elif selected_field == 'Purchase date':
             store_name = shopping['store_name']
             purchase_date = click.prompt('New purchase date (YYYY-MM-DD)', type=str)
             datetime.strptime(purchase_date, '%Y-%m-%d')
-            payment_method = shopping['payment_method']
-            ok, msg = db.update_shopping_trip(shopping['trip_id'], payment_method, purchase_date, store_name)
+            payment_method_id = db.select_payment_method_id(shopping['payment_method'])
+            ok, msg = db.update_shopping_trip(shopping['trip_id'], payment_method_id, purchase_date, store_name)
         elif selected_field == 'Payment method':
             store_name = shopping['store_name']
             purchase_date = shopping['purchase_date']
             payment_method = click.prompt('New payment method', type=str)
-            ok, msg = db.update_shopping_trip(shopping['trip_id'], payment_method, purchase_date, store_name)
+            payment_method_id = db.select_payment_method_id(payment_method)
+            if payment_method_id is None:
+                raise click.ClickException('Payment method not found')
+            ok, msg = db.update_shopping_trip(shopping['trip_id'], payment_method_id, purchase_date, store_name)
         elif selected_field == 'Items':
             ok, msg = change_shopping_items(trip_id=shopping['trip_id'])
         else:

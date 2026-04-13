@@ -54,6 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const refreshPurchasesBtn = document.getElementById('refreshPurchasesBtn');
     const updateTripForm = document.getElementById('updateTripForm');
 
+    function getErrorMessage(payload, fallback) {
+        return payload?.error?.message || payload?.error || fallback;
+    }
+
     refreshPurchasesBtn.addEventListener('click', loadPurchases);
     updateTripForm.addEventListener('submit', updateTrip);
     loadPurchases();
@@ -65,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const response = await fetch('{{ url_for("expenses.purchases.list_purchases") }}');
         const payload = await response.json();
         if (!response.ok) {
-            alert(payload.error || 'Erro ao buscar compras');
+            alert(getErrorMessage(payload, 'Erro ao buscar compras'));
             return;
         }
 
@@ -111,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const payload = await response.json();
         if (!response.ok) {
-            alert(payload.error || 'Erro ao atualizar compra');
+            alert(getErrorMessage(payload, 'Erro ao atualizar compra'));
             return;
         }
 

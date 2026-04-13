@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshCategoryItemsBtn.addEventListener('click', loadItemsByCategory);
     loadItemsByCategory();
 
+    function getErrorMessage(payload, fallback) {
+        return payload?.error?.message || payload?.error || fallback;
+    }
+
     async function loadItemsByCategory() {
         const tbody = document.querySelector('#itemsByCategoryTable tbody');
         tbody.innerHTML = '';
@@ -33,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const response = await fetch('{{ url_for("expenses.items.list_items") }}');
         const payload = await response.json();
         if (!response.ok) {
-            alert(payload.error || 'Erro ao buscar itens por categoria');
+            alert(getErrorMessage(payload, 'Erro ao buscar itens por categoria'));
             return;
         }
 

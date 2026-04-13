@@ -57,6 +57,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadItemsBtn = document.getElementById('loadItemsBtn');
     const updateItemForm = document.getElementById('updateItemForm');
 
+    function getErrorMessage(payload, fallback) {
+        return payload?.error?.message || payload?.error || fallback;
+    }
+
     loadItemsBtn.addEventListener('click', loadTripItems);
     updateItemForm.addEventListener('submit', updateItem);
 
@@ -72,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const response = await fetch(`/v1/purchase/${tripId}/items`);
         const payload = await response.json();
         if (!response.ok) {
-            alert(payload.error || 'Erro ao buscar itens');
+            alert(getErrorMessage(payload, 'Erro ao buscar itens'));
             return;
         }
 
@@ -119,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const payload = await response.json();
         if (!response.ok) {
-            alert(payload.error || 'Erro ao atualizar item');
+            alert(getErrorMessage(payload, 'Erro ao atualizar item'));
             return;
         }
 

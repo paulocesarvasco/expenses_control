@@ -5,6 +5,51 @@
 
 {% block content %}
 <div class="container mt-4">
+    <style>
+        .product-picker {
+            position: relative;
+        }
+
+        .product-picker-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            z-index: 20;
+            max-height: 220px;
+            overflow-y: auto;
+            display: none;
+            padding: 6px 0;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .product-picker-menu.is-open {
+            display: block;
+        }
+
+        .product-picker-option {
+            width: 100%;
+            padding: 8px 12px;
+            border: 0;
+            background: transparent;
+            text-align: left;
+        }
+
+        .product-picker-option:hover,
+        .product-picker-option:focus {
+            background: #f1f3f5;
+            outline: none;
+        }
+
+        .product-picker-empty {
+            padding: 8px 12px;
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+    </style>
     <form id="purchaseForm">
         <div class="form-section">
             <h3>Informações da Loja</h3>
@@ -21,11 +66,9 @@
                     <label for="paymentMethod" class="form-label">Método de Pagamento</label>
                     <select class="form-select" id="paymentMethod" required>
                         <option value="">Selecione...</option>
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="Cartão de Débito">Cartão de Débito</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="PIX">PIX</option>
-                        <option value="Vale">Vale</option>
+                        {% for payment_method in payment_methods %}
+                        <option value="{{ payment_method.payment_method_name }}">{{ payment_method.payment_method_name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -42,10 +85,10 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Nome do Produto</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control item-product" required list="productList">
+                            <div class="product-picker">
+                                <input type="text" class="form-control item-product" required autocomplete="off" placeholder="Selecione ou digite um produto">
+                                <div class="product-picker-menu"></div>
                             </div>
-                            <datalist id="productList"></datalist>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Marca</label>
@@ -98,11 +141,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const successToast = new bootstrap.Toast(document.getElementById('successToast'));
     const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
     const form = document.getElementById('purchaseForm');
+    let productOptions = [];
 
     document.getElementById('purchaseDate').valueAsDate = new Date();
     loadProducts();
 
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
+
+    function getErrorMessage(payload, fallback) {
+        return payload?.error?.message || payload?.error || fallback;
+    }
 
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-item')) {
@@ -135,10 +183,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (response.status === 201) {
                 showSuccess('Compra registrada com sucesso!');
-                setTimeout(() => window.location.reload(), 1000);
+                resetPurchaseForm();
             } else {
-                const error = await response.json();
-                throw new Error(error.error || 'Erro ao registrar compra');
+                const payload = await response.json();
+                throw new Error(getErrorMessage(payload, 'Erro ao registrar compra'));
             }
         } catch (error) {
             showError(error.message);
@@ -158,8 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
         newItem.innerHTML = `
             <div class="row g-3">
                 <div class="col-md-4">
-                    <div class="input-group">
-                        <input type="text" class="form-control item-product" required list="productList">
+                    <div class="product-picker">
+                        <input type="text" class="form-control item-product" required autocomplete="off" placeholder="Selecione ou digite um produto">
+                        <div class="product-picker-menu"></div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -177,21 +226,15 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         itemsContainer.appendChild(newItem);
+        setupProductPicker(newItem);
     }
 
     async function loadProducts() {
         try {
             const response = await fetch('{{ url_for("expenses.products.list_products") }}');
             if (response.ok) {
-                const products = await response.json();
-                const productList = document.getElementById('productList');
-                productList.innerHTML = '';
-
-                products.forEach(productName => {
-                    const option = document.createElement('option');
-                    option.value = productName;
-                    productList.appendChild(option);
-                });
+                productOptions = await response.json();
+                document.querySelectorAll('.item-row').forEach(setupProductPicker);
             } else {
                 throw new Error('Falha ao carregar produtos');
             }
@@ -200,10 +243,91 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function setupProductPicker(row) {
+        const picker = row.querySelector('.product-picker');
+        if (!picker || picker.dataset.initialized === 'true') {
+            return;
+        }
+
+        const input = picker.querySelector('.item-product');
+        const menu = picker.querySelector('.product-picker-menu');
+
+        input.addEventListener('focus', function() {
+            renderProductOptions(menu, input, input.value);
+        });
+
+        input.addEventListener('input', function() {
+            renderProductOptions(menu, input, input.value);
+        });
+
+        input.addEventListener('blur', function() {
+            window.setTimeout(() => {
+                menu.classList.remove('is-open');
+            }, 120);
+        });
+
+        picker.dataset.initialized = 'true';
+    }
+
+    function renderProductOptions(menu, input, query) {
+        const normalizedQuery = (query || '').trim().toLowerCase();
+        const filteredProducts = productOptions.filter(product =>
+            product.toLowerCase().includes(normalizedQuery)
+        );
+
+        menu.innerHTML = '';
+
+        if (filteredProducts.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'product-picker-empty';
+            empty.textContent = 'Nenhum produto encontrado';
+            menu.appendChild(empty);
+        } else {
+            filteredProducts.forEach(product => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'product-picker-option';
+                option.textContent = product;
+                option.addEventListener('mousedown', function() {
+                    input.value = product;
+                    menu.classList.remove('is-open');
+                });
+                menu.appendChild(option);
+            });
+        }
+
+        menu.classList.add('is-open');
+    }
+
     function reindexItems() {
         document.querySelectorAll('.item-row').forEach((row, index) => {
             row.dataset.itemIndex = index;
         });
+    }
+
+    function resetPurchaseForm() {
+        form.reset();
+        document.getElementById('purchaseDate').valueAsDate = new Date();
+
+        const itemsContainer = document.getElementById('items-container');
+        const rows = Array.from(itemsContainer.querySelectorAll('.item-row'));
+        rows.slice(1).forEach(row => row.remove());
+
+        const firstRow = itemsContainer.querySelector('.item-row');
+        if (firstRow) {
+            firstRow.querySelector('.item-product').value = '';
+            firstRow.querySelector('.item-brand').value = '';
+            firstRow.querySelector('.item-quantity').value = '';
+            firstRow.querySelector('.item-price').value = '';
+
+            const menu = firstRow.querySelector('.product-picker-menu');
+            if (menu) {
+                menu.classList.remove('is-open');
+                menu.innerHTML = '';
+            }
+        }
+
+        reindexItems();
     }
 
     function collectFormData() {
@@ -231,6 +355,8 @@ document.addEventListener('DOMContentLoaded', function() {
         toastBody.textContent = message;
         errorToast.show();
     }
+
+    setupProductPicker(document.querySelector('.item-row'));
 });
 </script>
 {% endblock %}
