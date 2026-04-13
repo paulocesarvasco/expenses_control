@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import date, datetime
 
@@ -57,7 +58,10 @@ def get_db_engine():
 def close_db(_exception=None):
     session = g.pop('db_session', None)
     if session is not None:
-        session.close()
+        try:
+            session.close()
+        except Exception:
+            logging.exception('failed to close database session during teardown')
 
 
 def shutdown_db():
@@ -69,10 +73,14 @@ def shutdown_db():
         close_db()
 
     if _ENGINE is not None:
-        _ENGINE.dispose()
-        _ENGINE = None
-        _SESSION_FACTORY = None
-        _ENGINE_DB_URL = None
+        try:
+            _ENGINE.dispose()
+        except Exception:
+            logging.exception('failed to dispose database engine during shutdown')
+        finally:
+            _ENGINE = None
+            _SESSION_FACTORY = None
+            _ENGINE_DB_URL = None
 
 
 def get_db_session():

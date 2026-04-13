@@ -162,6 +162,19 @@ class ApiBaselineTestCase(unittest.TestCase):
         self.assertEqual(payload["quantity"], 4.0)
         self.assertEqual(payload["total_price"], 44.0)
 
+    def test_unexpected_error_returns_controlled_500_response(self):
+        self.app.add_url_rule(
+            "/v1/test-error",
+            endpoint="test_error",
+            view_func=lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+
+        response = self.client.get("/v1/test-error?format=json")
+        payload = response.get_json()
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(payload["error"]["message"], "Internal server error")
+
 
 if __name__ == "__main__":
     unittest.main()
