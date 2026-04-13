@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, joinedload
 
-from app.utils.models import Product, ProductCategory, PurchasedItem, ShoppingTrip
+from app.models import Product, ProductCategory, PurchasedItem, ShoppingTrip
 
 _ENGINE = None
 _SESSION_FACTORY = None

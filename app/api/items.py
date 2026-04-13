@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.responses import error_response
 from app.services.database import Session
-from app.utils.models import Product, ProductCategory, PurchasedItem
+from app.models import Product, ProductCategory, PurchasedItem
 
 items_bp = Blueprint('items', __name__, url_prefix='/item')
 logger = logging.getLogger('views')

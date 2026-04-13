@@ -8,14 +8,14 @@ from app.services.purchase_service import (
 )
 from app.api.responses import error_response
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
-from app.utils.models import Product, PurchasedItem, ShoppingTrip
+from app.models import Product, PurchasedItem, ShoppingTrip
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify
 from http import HTTPStatus
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.utils.models.payloads import SearchResponsePayload
+from app.models.payloads import SearchResponsePayload
 
 import logging
 logger = logging.getLogger('views')

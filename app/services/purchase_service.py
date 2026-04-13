@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from app.services.database import db
 from app.utils.exceptions.custom_exceptions import ProductError, RequestPayloadError
-from app.utils.models import PurchasedItem, ShoppingTrip
+from app.models import PurchasedItem, ShoppingTrip
 
 
 def parse_iso_date(value: str) -> date:

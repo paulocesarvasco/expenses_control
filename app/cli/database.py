@@ -2,7 +2,7 @@ import click
 import logging
 import os
 
-from app.utils.models import Base
+from app.models import Base
 from sqlalchemy import create_engine
 
 

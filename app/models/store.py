@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, Float
 from sqlalchemy.orm import relationship
-from app.utils.models import Base
+
+from app.models import Base
 
 
 class ShoppingTrip(Base):
@@ -13,7 +14,6 @@ class ShoppingTrip(Base):
     payment_method = Column(String(50))
     notes = Column(String(150))
 
-    # Relationship to purchased items
     items = relationship("PurchasedItem", back_populates="trip")
 
     def __repr__(self):

@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.responses import error_response
 from app.services.database import Session, db
-from app.utils.models import Product
+from app.models import Product
 
 logger = logging.getLogger('views')
 

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Computed, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
-from app.utils.models import Base
+
+from app.models import Base
 
 
 class PurchasedItem(Base):
@@ -14,7 +15,6 @@ class PurchasedItem(Base):
     total_price = Column(Float(precision=2), Computed(quantity * unit_price))
     brand = Column(String(100))
 
-    # Relationships
     trip = relationship("ShoppingTrip", back_populates="items")
     product = relationship("Product", back_populates="purchases")
 

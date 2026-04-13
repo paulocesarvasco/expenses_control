@@ -1,6 +1,3 @@
-from flask import jsonify
-
-
 class SearchResponsePayload():
 
     def __init__(self) -> None:

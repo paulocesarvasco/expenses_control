@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.responses import error_response
 from app.services.database import Session
-from app.utils.models import ProductCategory
+from app.models import ProductCategory
 
 categories_bp = Blueprint('categories', __name__, url_prefix='/category')
 logger = logging.getLogger('views')

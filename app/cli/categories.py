@@ -4,7 +4,7 @@ import click
 from prettytable import PrettyTable
 
 from app.services.database import db
-from app.utils.models import ProductCategory
+from app.models import ProductCategory
 
 
 def _prompt_category_name() -> str:

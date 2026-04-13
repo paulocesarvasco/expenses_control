@@ -5,7 +5,7 @@ import unittest
 from sqlalchemy import create_engine
 
 from app import create_app
-from app.utils.models import Base
+from app.models import Base
 
 
 class ApiBaselineTestCase(unittest.TestCase):
